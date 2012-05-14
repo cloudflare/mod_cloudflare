@@ -2,7 +2,7 @@ Source: libapache2-mod-cloudflare
 Section: web
 Priority: extra
 Maintainer: CloudFlare <info@cloudflare.com>
-Build-Depends: debhelper (>= 8.0.0)
+Build-Depends: debhelper (>= 8.0.0), apache2-prefork-dev | apache2-threaded-dev
 Standards-Version: 3.9.3
 Homepage: https://github.com/cloudflare/mod_cloudflare
 #Vcs-Git: git://git.debian.org/collab-maint/mod-cloudflare.git
