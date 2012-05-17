@@ -1,5 +1,5 @@
-mod-cloudflare (1.0) unstable; urgency=low
+mod-cloudflare (1.0) stable; urgency=low
 
   * Initial Release.
 
- -- cf <ray@cloudflare.com>  Thu, 17 May 2012 14:57:44 -0700
+ -- CloudFlare <info@cloudflare.com>  Thu, 17 May 2012 14:57:44 -0700

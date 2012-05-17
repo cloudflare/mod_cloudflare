@@ -31,12 +31,14 @@ build: build-stamp
 build-stamp:
 	dh_testdir
 	CFLAGS="$(CFLAGS)" /usr/bin/apxs2 -o mod_cloudflare.so -c *.c
+	cp ./.libs/mod_cloudflare.so .
 	touch build-stamp
 	
 clean:
 	dh_testdir
 	rm -f build-stamp
-	-rm -f *.o mod_cloudflare.so			
+	rm -f *.o mod_cloudflare.so			
+	rm -rf .libs
 	dh_clean build-stamp
 
 install:
