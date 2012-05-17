@@ -1,0 +1,40 @@
+Copyright CloudFlare 2012 cloudflare.com
+
+======> mod_cloudflare.c
+
+Based on mod_remoteip.c, this apache extension will replace the remote_ip variable in user's logs with the correct remote_ip sent from CloudFlare. 
+This also does authentication, only performing the switch for requests originating from 204.93.173.0/24 (by default).
+
+To install: 
+
+# apxs2 -a -i -c mod_cloudflare.c
+
+No further configuration is needed. However, if you wish to override the default values, the following directives are exposed:
+
+* CloudFlareRemoteIPHeader 
+
+This specifies the header which contains the original IP. Default:
+
+CloudFlareRemoteIPHeader CF-Connecting-IP
+
+* CloudFlareRemoteIPTrustedProxy 
+
+This is the IP range from which we will allow the CloudFlareRemoteIPHeader to be used from. See https://www.cloudflare.com/wiki/What_are_the_CloudFlare_IP_address_ranges.
+
+Note that on some Debian systems, you may have to add a LoadModule directive manually. This should look like:
+
+LoadModule cloudflare_module /usr/lib/apache2/modules/mod_cloudflare.so
+
+Replace /usr/lib/apache2/modules/mod_cloudflare.so with the path to mod_cloudflare.so on your system.
+
+If you cannot find apxs or apxs2, on a Debian or Ubuntu distro you can install this tool with:
+
+# apt-get install apache2-prefork-dev
+
+NOTES: 
+
+*) If mod_cloudflare and mod_remoteip are enabled on the same web server, the server will crash if they both try to set the remote IP to a different value.
+*) Enableing mod_cloudflare will not effect the performance of Apache in any noticable maner. AB testing both over LAN and WAN show no equalilent numbers with and without mod_cloudflare.
+*) If you like, you may also add the directive DenyAllButCloudFlare. This will result in all requests from IPs which are not in the CloudFlareRemoteIPTrustedProxy range being denied with a status of 403.
+
+
