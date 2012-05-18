@@ -24,8 +24,8 @@ cp %{SOURCE0} .
 cat > cloudflare.conf <<EOF
 LoadModule cloudflare_module modules/mod_cloudflare.so
 <IfModule mod_cloudflare.c>
-	#CloudFlareRemoteIPHeader CF-Connecting-IP
-	#CloudFlareRemoteIPTrustedProxy 204.93.240.0/24 204.93.177.0/24 199.27.128.0/21 173.245.48.0/20 103.22.200.0/22 141.101.64.0/18 108.162.192.0/18
+	CloudFlareRemoteIPHeader CF-Connecting-IP
+	CloudFlareRemoteIPTrustedProxy 204.93.240.0/24 204.93.177.0/24 199.27.128.0/21 173.245.48.0/20 103.22.200.0/22 141.101.64.0/18 108.162.192.0/18
 	#DenyAllButCloudFlare
 </IfModule>
 EOF
