@@ -1,4 +1,4 @@
-mod-cloudflare (1.0) stable; urgency=low
+libapache2-mod-cloudflare (1.0) stable; urgency=low
 
   * Initial Release.
 

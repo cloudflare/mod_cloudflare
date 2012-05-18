@@ -30,8 +30,7 @@ endif
 build: build-stamp
 build-stamp:
 	dh_testdir
-	CFLAGS="$(CFLAGS)" /usr/bin/apxs2 -o mod_cloudflare.so -c *.c
-	cp ./.libs/mod_cloudflare.so .
+	CFLAGS="$(CFLAGS)" /usr/bin/apxs2 -o mod_cloudflare.so -c ../mod_cloudflare.c
 	touch build-stamp
 	
 clean:
@@ -44,6 +43,8 @@ clean:
 install:
 	dh_testdir
 	dh_installdirs
-	apxs2 -i -a mod_cloudflare.so
-	
+	mkdir -p $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/.lib
+	cp ./.libs/mod_cloudflare.so $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/
+	cp ../mod_cloudflare.c $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/
+
 .PHONY: binary binary-arch binary-indep clean build install 

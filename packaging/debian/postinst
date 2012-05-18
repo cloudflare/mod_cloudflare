@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set ts=2 sw=2 et:
 
-apxs2 -i -a -n mod_cloudflare /tmp/mod_cloudflare.so
-rm /tmp/mod_cloudflare.so
+apxs2 -i -a /tmp/mod_cloudflare/mod_cloudflare.so
+rm -rf /tmp/mod_cloudflare
 
 #DEBHELPER#
