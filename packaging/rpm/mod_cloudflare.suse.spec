@@ -22,7 +22,7 @@ address of the visitor.
 %setup -c -T
 cp %{SOURCE0} .
 cat > cloudflare.conf <<EOF
-LoadModule cloudflare_module modules/mod_cloudflare.so
+LoadModule cloudflare_module /usr/lib64/apache2/mod_cloudflare.so
 <IfModule mod_cloudflare.c>
 	CloudFlareRemoteIPHeader CF-Connecting-IP
 	CloudFlareRemoteIPTrustedProxy 204.93.240.0/24 204.93.177.0/24 199.27.128.0/21 173.245.48.0/20 103.22.200.0/22 141.101.64.0/18 108.162.192.0/18
@@ -31,24 +31,30 @@ LoadModule cloudflare_module modules/mod_cloudflare.so
 EOF
 
 %build
-apxs -c mod_cloudflare.c
+/usr/sbin/apxs2 -c mod_cloudflare.c
 
 %install
 rm -rf %{buildroot}
 
-install -d %{buildroot}%{_libdir}/apache2/modules
-install -m 755 .libs/mod_cloudflare.so %{buildroot}%{_libdir}/apache2/modules/mod_cloudflare.so
-install -d %{buildroot}%{_sysconfdir}/apache2/conf.d
-install -m 644 cloudflare.conf %{buildroot}%{_sysconfdir}/apache2/conf.d/cloudflare.conf
+install -d %{buildroot}%{_libdir}/apache2
+install -m 755 .libs/mod_cloudflare.so %{buildroot}%{_libdir}/apache2/mod_cloudflare.so
+install -d %{buildroot}%{_sysconfdir}/apache2
+install -m 644 cloudflare.conf %{buildroot}%{_sysconfdir}/apache2/mod_cloudflare.conf
+
+%post
+sed --in-place=bck -e 's#\(APACHE_CONF_INCLUDE_FILES.*=\)"\([^"]*\)"#\1"\2 mod_cloudflare.conf"#' %{_sysconfdir}/sysconfig/apache2
 
 %clean
 rm -rf %{buildroot}
 
+%preun
+sed --in-place=bck -e 's# *mod_cloudflare.conf##' /etc/sysconfig/apache2
+
 
 %files
 %defattr(-,root,root,-)
-%{_libdir}/apache2/modules/mod_cloudflare.so
-%config(noreplace) %{_sysconfdir}/apache2/conf.d/cloudflare.conf
+%{_libdir}/apache2/mod_cloudflare.so
+%config(noreplace) %{_sysconfdir}/apache2/mod_cloudflare.conf
 
 %changelog
 * Mon Feb 27 2012 Alex Headley <aheadley@nexcess.net> [1.0.2-3]
