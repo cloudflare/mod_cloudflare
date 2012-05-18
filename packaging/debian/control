@@ -10,7 +10,7 @@ Homepage: https://github.com/cloudflare/mod_cloudflare
 
 Package: libapache2-mod-cloudflare
 Architecture: any
-Depends: apache2-dev, ${shlibs:Depends}, ${misc:Depends}
+Depends: apache2, ${shlibs:Depends}, ${misc:Depends}
 Description: mod_cloudflare to show visitor IPs in logs.
  Based on mod_remoteip.c, this apache extension will replace the
  remote_ip variable in user's logs with the correct remote_ip sent

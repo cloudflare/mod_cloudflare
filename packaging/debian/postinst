@@ -1,7 +1,27 @@
 #!/bin/bash
 # vim: set ts=2 sw=2 et:
 
-apxs2 -i -a /tmp/mod_cloudflare/mod_cloudflare.so
+do_enable () {
+  if [ ! -e /etc/apache2/mods-available/cloudflare.load ] ; then
+    exit 0
+  fi
+  echo -n "A new Apache module has been installed.  Reconfigure apache [Y/n]? "
+  read CONFIG
+  case "$CONFIG" in
+    [nN]*) # user said no
+      echo -n ""  # do nothing
+      ;;
+    *)     # user said yes
+      install -d /etc/apache2/mods-enabled
+      (cd /etc/apache2/mods-enabled && ln -s ../mods-available/cloudflare.conf &&  ln -s ../mods-available/cloudflare.load)
+      ;;
+  esac
+}
+
+install -m 755 /tmp/mod_cloudflare/mod_cloudflare.so /usr/lib/apache2/modules/mod_cloudflare.so
+
+do_enable
+
 rm -rf /tmp/mod_cloudflare
 
 #DEBHELPER#

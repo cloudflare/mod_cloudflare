@@ -3,6 +3,7 @@
 
 set -e
 
+rm -f /etc/apache2/mods-enabled/cloudflare.conf
 rm -f /etc/apache2/mods-enabled/cloudflare.load
 
 #DEBHELPER#
