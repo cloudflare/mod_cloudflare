@@ -1,5 +1,5 @@
-libapache2-mod-cloudflare (1.0) stable; urgency=low
+libapache2-mod-cloudflare (1.1) stable; urgency=low
 
-  * Initial Release.
+  * Initial offical package release.
 
- -- CloudFlare <info@cloudflare.com>  Thu, 17 May 2012 14:57:44 -0700
+ -- CloudFlare <info@cloudflare.com>  Sun, 20 May 2012 00:00:00 -0700

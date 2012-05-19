@@ -1,12 +1,12 @@
 Name:		mod_cloudflare
-Version:	1.0.2
+Version:	1.1.0
 Release:	3%{?dist}
-Summary:	Cloudflare Apache Module
+Summary:	CloudFlare Apcahe module mod_cloudflare to show visitor IPs in logs.
 
 Group:		System Environment/Daemons
 License:	ASL-2.0
 URL:		http://www.cloudflare.com/
-Source0:	https://raw.github.com/cloudflare/CloudFlare-Tools/master/mod_cloudflare.c
+Source0:	https://www.github.com/cloudflare/mod_cloudfare
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:	httpd-devel
@@ -17,6 +17,10 @@ CloudFlare acts as a proxy, which means that your visitors are routed through
 the CloudFlare network and you do not see their original IP address. This
 module uses HTTP headers provided by the CloudFlare proxy to log the real IP
 address of the visitor.
+Based on mod_remoteip.c, this apache extension will replace the
+remote_ip variable in user's logs with the correct remote_ip sent
+from CloudFlare. This also does authentication, only performing
+the switch for requests originating from CloudFlare IPs.
 
 %prep
 %setup -c -T
@@ -51,6 +55,9 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/cloudflare.conf
 
 %changelog
+* Sun May 20 2012 CloudFlare <info@cloudflare.com> [1.1.0-1]
+- Initial offical package release.
+
 * Mon Feb 27 2012 Alex Headley <aheadley@nexcess.net> [1.0.2-3]
 - use _sysconfdir instead of /etc
 - add config directive examples to config file and change config file generation

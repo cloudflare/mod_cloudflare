@@ -11,7 +11,11 @@ Homepage: https://github.com/cloudflare/mod_cloudflare
 Package: libapache2-mod-cloudflare
 Architecture: any
 Depends: apache2, ${shlibs:Depends}, ${misc:Depends}
-Description: mod_cloudflare to show visitor IPs in logs.
+Description: CloudFlare Apcahe module mod_cloudflare to show visitor IPs in logs.
+ CloudFlare acts as a proxy, which means that your visitors are routed through
+ the CloudFlare network and you do not see their original IP address. This
+ module uses HTTP headers provided by the CloudFlare proxy to log the real IP
+ address of the visitor.
  Based on mod_remoteip.c, this apache extension will replace the
  remote_ip variable in user's logs with the correct remote_ip sent
  from CloudFlare. This also does authentication, only performing
