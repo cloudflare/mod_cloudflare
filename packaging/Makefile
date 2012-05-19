@@ -1,5 +1,9 @@
 
-all: pkg-deb
+all: 
+
+.PHONY: pkg-deb-system-prep
+pkg-deb-system-prep:
+	apt-get install devscripts debhelper apache2-dev
 
 .PHONY: pkg-deb
 pkg-deb:
@@ -8,6 +12,14 @@ pkg-deb:
 
 APP_NAME=mod_cloudflare
 VERSION=1.0
+
+.PHONY: pkg-rpm-system-prep
+pkg-rpm-system-prep:
+	yum install rpm-build http-devel
+
+.PHONY: pkg-rpm-suse-system-prep
+pkg-rpm-suse-system-prep:
+	zypper install rpm-build apache2-devel
 
 .PHONY:pkg-rpm-prep
 pkg-rpm-prep:
