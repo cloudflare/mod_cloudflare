@@ -31,7 +31,7 @@ LoadModule cloudflare_module modules/mod_cloudflare.so
 EOF
 
 %build
-apxs2 -c mod_cloudflare.c
+apxs -c mod_cloudflare.c
 
 %install
 rm -rf %{buildroot}
