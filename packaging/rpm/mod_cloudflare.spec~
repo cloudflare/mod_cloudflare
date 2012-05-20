@@ -6,7 +6,7 @@ Summary:	CloudFlare Apcahe module mod_cloudflare to show visitor IPs in logs.
 Group:		System Environment/Daemons
 License:	ASL-2.0
 URL:		http://www.cloudflare.com/
-Source0:	https://raw.github.com/cloudflare/mod_cloudflare/master/mod_cloudflare.c
+Source0:	https://www.github.com/cloudflare/mod_cloudfare
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:	httpd-devel
@@ -24,7 +24,7 @@ the switch for requests originating from CloudFlare IPs.
 
 %prep
 %setup -c -T
-cp %{SOURCE0}  .
+cp ../../../../mod_cloudflare.c .
 cat > cloudflare.conf <<EOF
 LoadModule cloudflare_module modules/mod_cloudflare.so
 <IfModule mod_cloudflare.c>

@@ -15,11 +15,11 @@ VERSION=1.0
 
 .PHONY: pkg-rpm-system-prep
 pkg-rpm-system-prep:
-	yum install rpm-build http-devel
+	yum install -y rpm-build httpd-devel
 
 .PHONY: pkg-rpm-suse-system-prep
 pkg-rpm-suse-system-prep:
-	zypper install rpm-build apache2-devel
+	zypper install -y rpm-build apache2-devel
 
 .PHONY:pkg-rpm-prep
 pkg-rpm-prep:
