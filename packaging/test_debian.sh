@@ -2,16 +2,20 @@
 
 #test_debian.sh foo.deb
 
+set -x
+
 # install package with no apache2
-dpkg -i $1 
+sudo dpkg -i $1
 if [ $? -eq 0 ]; then
 	echo "NOTE: DPKG succeeded despite no apache2. Deps are broken"
 fi
+# cleanup failed install
+sudo dpkg -r libapache2-mod-cloudflare
 
 # install package with apache2
-apt-get -y update
-apt-get -f -y install apache2 
-dpkg -i $1 
+sudo apt-get -y update
+sudo apt-get -y install apache2
+sudo dpkg -i $1
 if [ $? -gt 0 ]; then
 	echo "DPKG failed on install"
 	exit 1
@@ -25,9 +29,9 @@ if [ ! -e /usr/lib/apache2/modules/mod_cloudflare.so -a ! -e /etc/apache2/mods-a
 fi
 
 #add localhost to conf
-sed -i bck -e 's#\(CloudFlareRemoteIPTrustedProxy.*\)$#\1 127.0.0.1#' /etc/apache2/mods-available/cloudflare.conf
+sudo sed -i -e 's#\(CloudFlareRemoteIPTrustedProxy.*\)$#\1 127.0.0.1#' /etc/apache2/mods-available/cloudflare.conf
 #localhost curl w/ header
-/etc/init.d/apache restart
+sudo /etc/init.d/apache2 restart
 curl -H"CF-Connecting-IP: 1.2.3.4" localhost:80
 sleep 1
 grep '1.2.3.4' /var/log/apache2/access.log
@@ -37,7 +41,7 @@ if [ $? -gt 0 ]; then
 fi
 
 #delete package
-dpkg -r libapache2-mod-cloudflare
+sudo dpkg -r libapache2-mod-cloudflare
 if [ $? -gt 0 ]; then
 	echo "DPKG returned fail on remove"
 fi
