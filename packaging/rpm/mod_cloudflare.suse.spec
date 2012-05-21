@@ -26,7 +26,7 @@ the switch for requests originating from CloudFlare IPs.
 %setup -c -T
 cp %{SOURCE0} .
 cat > cloudflare.conf <<EOF
-LoadModule cloudflare_module /usr/lib64/apache2/mod_cloudflare.so
+LoadModule cloudflare_module %{_libdir}/apache2/mod_cloudflare.so
 <IfModule mod_cloudflare.c>
 	CloudFlareRemoteIPHeader CF-Connecting-IP
 	CloudFlareRemoteIPTrustedProxy 204.93.240.0/24 204.93.177.0/24 199.27.128.0/21 173.245.48.0/20 103.22.200.0/22 141.101.64.0/18 108.162.192.0/18
