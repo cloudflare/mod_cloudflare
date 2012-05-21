@@ -37,4 +37,27 @@ NOTES:
 *) Enableing mod_cloudflare will not effect the performance of Apache in any noticable maner. AB testing both over LAN and WAN show no equalilent numbers with and without mod_cloudflare.
 *) If you like, you may also add the directive DenyAllButCloudFlare. This will result in all requests from IPs which are not in the CloudFlareRemoteIPTrustedProxy range being denied with a status of 403.
 
+Packaging
+The packaging directory contains a makefile to run the package process. For each class of system you wish to target, run the approriate rules:
+  debian (& ubuntu)
+      sudo make pkg-deb-system-prep
+      make pkg-deb
+
+  redhat (& centos)
+      sudo make pkg-rpm-system-prep
+      make pkg-rpm
+
+  suse
+      sudo make pkg-rpm-suse-system-prep
+      make pkg-rpm-suse
+
+Testing
+To test a package run the test_debian, test_rpm or test_rpm.suse scripts on the target machine:
+test_debian.sh libapache2-mod-cloudflare_1.1_i386.deb
+test_rpm.suse.sh mod_cloudflare-1.1.0-3.fc16.x86_64.rpm
+test_rpm.suse.sh mod_cloudflare-1.1.0-3.x86_64.suse.rpm
+
+
+Releases
+2012-05-20 .deb and .rpm release tested on Debian 6.0, Ubuntu 8.04, Ubuntu 10.04, CentOS 5, CentOS 6, RHEL 5, RHEL 6, OpenSuSE 11.4, OpenSuSE 12.1 all on 32-bit and 64-bit architectures. These were produced on Fedora 16, Ubuntu 12.04 and OpenSuSE 12.1
 
