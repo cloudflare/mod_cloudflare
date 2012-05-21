@@ -21,7 +21,7 @@ fi
 
 
 #check files/confs in the right place
-if [ ! -e /usr/lib64/apache2/mod_cloudflare.so -a ! -e /usr/lib64/apache2/mod_cloudflare.so ]; then
+if [ ! -e /usr/lib/apache2/mod_cloudflare.so -a ! -e /usr/lib64/apache2/mod_cloudflare.so ]; then
 	echo "Module installed incorrectly."
 	exit 1
 fi
@@ -38,7 +38,7 @@ fi
 #add localhost to conf
 sed -i -e 's#\(CloudFlareRemoteIPTrustedProxy.*\)$#\1 127.0.0.1#' /etc/apache2/mod_cloudflare.conf
 #localhost curl w/ header
-/etc/init.d/apache restart
+/etc/init.d/apache2 restart
 curl -4 -H"CF-Connecting-IP: 1.2.3.4" localhost:80
 sleep 1
 grep '1.2.3.4' /var/log/apache2/access_log
@@ -48,7 +48,7 @@ if [ $? -gt 0 ]; then
 fi
 
 #delete package
-zypper --non-interactive el mod_cloudflare
+zypper --non-interactive rm mod_cloudflare
 if [ $? -gt 0 ]; then
 	echo "rpm returned fail on remove"
 	exit 1
@@ -60,7 +60,7 @@ if [ -e /usr/lib64/apache2/mod_cloudflare.so -o -e /usr/lib64/apache2/mod_cloudf
 	exit 1
 fi
 grep mod_cloudflare.conf /etc/sysconfig/apache2
-if [ $? -gt 0 ]; then
+if [ $? -eq 0 ]; then
 	echo "Module uninstalled incorrectly."
 	exit 1
 fi
