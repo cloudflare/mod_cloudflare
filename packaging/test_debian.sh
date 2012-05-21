@@ -32,7 +32,7 @@ fi
 sudo sed -i -e 's#\(CloudFlareRemoteIPTrustedProxy.*\)$#\1 127.0.0.1#' /etc/apache2/mods-available/cloudflare.conf
 #localhost curl w/ header
 sudo /etc/init.d/apache2 restart
-curl -H"CF-Connecting-IP: 1.2.3.4" localhost:80
+curl -4 -H"CF-Connecting-IP: 1.2.3.4" localhost:80
 sleep 1
 grep '1.2.3.4' /var/log/apache2/access.log
 if [ $? -gt 0 ]; then
