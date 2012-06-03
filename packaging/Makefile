@@ -39,3 +39,7 @@ pkg-rpm: pkg-rpm-prep
 
 pkg-rpm-suse: pkg-rpm-prep
 	rpmbuild --define="_topdir `pwd`/rpm" -ba ./rpm/mod_cloudflare.suse.spec
+
+.PHONY: archive-src
+archive-src:
+	git archive --prefix=mod_cloudflare/ --format=tar HEAD `pwd`/../ -o  mod_cloudflare.`git log -n1 --pretty='%h' HEAD`.src.tar
