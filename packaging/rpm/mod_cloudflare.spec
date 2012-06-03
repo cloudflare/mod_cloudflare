@@ -1,6 +1,6 @@
 Name:		mod_cloudflare
 Version:	1.1.1
-Release:	3%{?dist}
+Release:	1%{?dist}
 Summary:	CloudFlare Apcahe module mod_cloudflare to show visitor IPs in logs.
 
 Group:		System Environment/Daemons
@@ -55,7 +55,7 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/cloudflare.conf
 
 %changelog
-* Sun June 3 2012 CloudFlare <info@cloudflare.com> [1.1.1-1]
+* Sun Jun 03 2012 CloudFlare <info@cloudflare.com> [1.1.1-1]
 - Bugfix: Corrected behaviour when CloudFlareRemoteIPHeader is not set and
   DenyAllButCloudFlare is enabled. Will now deny.
 

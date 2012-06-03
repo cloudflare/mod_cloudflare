@@ -1,6 +1,6 @@
 Name:		mod_cloudflare
 Version:	1.1.1
-Release:	3%{?dist}
+Release:	1%{?dist}
 Summary:	Cloudflare Apache Module
 
 Group:		System Environment/Daemons
@@ -61,7 +61,7 @@ sed --in-place=bck -e 's# *mod_cloudflare.conf##' /etc/sysconfig/apache2
 %config(noreplace) %{_sysconfdir}/apache2/mod_cloudflare.conf
 
 %changelog
-* Sun June 3 2012 CloudFlare <info@cloudflare.com> [1.1.1-1]
+* Sun Jun 03 2012 CloudFlare <info@cloudflare.com> [1.1.1-1]
 - Bugfix: Corrected behaviour when CloudFlareRemoteIPHeader is not set and
   DenyAllButCloudFlare is enabled. Will now deny.
 
