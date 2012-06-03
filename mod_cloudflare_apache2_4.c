@@ -271,6 +271,9 @@ static int cloudflare_modify_connection(request_rec *r)
     }
 
     if (!remote) {
+        if (config->deny_all) {
+            return 403;
+        }
         return OK;
     }
 

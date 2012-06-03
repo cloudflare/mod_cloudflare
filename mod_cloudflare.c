@@ -270,7 +270,15 @@ static int cloudflare_modify_connection(request_rec *r)
         }
     }
 
+    /* Deny requests that do not have a CloudFlareRemoteIPHeader set when
+     * DenyAllButCloudFlare is set. Do not modify the request otherwise and
+     * return early.
+     */
     if (!remote) {
+        if (config->deny_all) {
+            return 403;
+        }
+
         return OK;
     }
 
