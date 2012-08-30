@@ -285,7 +285,7 @@ static int cloudflare_modify_connection(request_rec *r)
     remote = apr_pstrdup(r->pool, remote);
 
 #ifdef REMOTEIP_OPTIMIZED
-    memcpy(&temp_sa, c->remote_addr, sizeof(temp_sa));
+    memcpy(temp_sa, c->remote_addr, sizeof(*temp_sa));
     temp_sa->pool = r->pool;
 #else
     temp_sa = c->remote_addr;
@@ -340,7 +340,7 @@ static int cloudflare_modify_connection(request_rec *r)
 #ifdef REMOTEIP_OPTIMIZED
         /* Decode remote_addr - sucks; apr_sockaddr_vars_set isn't 'public' */
         if (inet_pton(AF_INET, parse_remote,
-                      &temp_sa_buff->sa.sin.sin_addr) > 0) {
+                      &temp_sa->sa.sin.sin_addr) > 0) {
             apr_sockaddr_vars_set(temp_sa, APR_INET, temp_sa.port);
         }
 #if APR_HAVE_IPV6
@@ -439,10 +439,9 @@ static int cloudflare_modify_connection(request_rec *r)
      */
     c->remote_ip = apr_pstrdup(c->pool, c->remote_ip);
     conn->proxied_ip = c->remote_ip;
-    memcpy(&conn->proxied_addr, &temp_sa, sizeof(temp_sa));
+    memcpy(&conn->proxied_addr, temp_sa, sizeof(*temp_sa));
     conn->proxied_addr.pool = c->pool;
-    // Causing an error with mod_authz_host
-    // c->remote_addr = &conn->proxied_addr;
+    c->remote_addr = &conn->proxied_addr;
 
     if (remote)
         remote = apr_pstrdup(c->pool, remote);
