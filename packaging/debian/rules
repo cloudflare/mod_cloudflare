@@ -43,9 +43,8 @@ clean:
 install:
 	dh_testdir
 	dh_installdirs
-	mkdir -p $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/.lib
-	cp ./.libs/mod_cloudflare.so $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/
-	cp ../mod_cloudflare.c $(CURDIR)/debian/libapache2-mod-cloudflare/tmp/mod_cloudflare/
+	mkdir -p $(CURDIR)/debian/libapache2-mod-cloudflare/usr/lib/apache2/modules/
+	cp ./.libs/mod_cloudflare.so $(CURDIR)/debian/libapache2-mod-cloudflare/usr/lib/apache2/modules/
 
 	mkdir -p $(CURDIR)/debian/libapache2-mod-cloudflare/etc/apache2/mods-available
 	cp $(CURDIR)/debian/cloudflare.conf $(CURDIR)/debian/libapache2-mod-cloudflare/etc/apache2/mods-available/cloudflare.conf
