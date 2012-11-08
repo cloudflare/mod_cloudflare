@@ -1,9 +1,11 @@
-#!/bin/bash
-# vim: set ts=2 sw=2 et:
+#!/bin/sh
 
 set -e
 
-rm -f /etc/apache2/mods-enabled/cloudflare.conf
-rm -f /etc/apache2/mods-enabled/cloudflare.load
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    if [ -e /etc/apache2/apache2.conf ]; then
+        a2dismod cloudfare || true
+    fi
+fi
 
-#DEBHELPER#
+exit 0
