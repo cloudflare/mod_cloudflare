@@ -4,7 +4,7 @@ set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     if [ -e /etc/apache2/apache2.conf ]; then
-        a2dismod cloudfare || true
+        a2dismod cloudflare || true
     fi
 fi
 
