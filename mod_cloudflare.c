@@ -40,8 +40,8 @@
 module AP_MODULE_DECLARE_DATA cloudflare_module;
 
 #define CF_DEFAULT_IP_HEADER "CF-Connecting-IP"
-#define CF_DEFAULT_TRUSTED_PROXY {"204.93.240.0/24", "204.93.177.0/24", "199.27.128.0/21", "173.245.48.0/20", "103.22.200.0/22", "141.101.64.0/18","108.162.192.0/18","190.93.240.0/20"}
-#define CF_DEFAULT_TRUSTED_PROXY_COUNT 8
+#define CF_DEFAULT_TRUSTED_PROXY {"204.93.240.0/24","204.93.177.0/24","199.27.128.0/21","173.245.48.0/20","103.21.244.0/22","103.22.200.0/22","103.31.4.0/22","141.101.64.0/18","108.162.192.0/18","190.93.240.0/20","188.114.96.0/20","197.234.240.0/22","198.41.128.0/17","162.158.0.0/15"}
+#define CF_DEFAULT_TRUSTED_PROXY_COUNT 14
 
 typedef struct {
     /** A proxy IP mask to match */
@@ -61,7 +61,7 @@ typedef struct {
     /** A list of trusted proxies, ideally configured
      *  with the most commonly encountered listed first
      */
-    
+
     int deny_all;
     /** If this flag is set, only allow requests which originate from a CF Trusted Proxy IP.
      * Return 403 otherwise.
@@ -171,7 +171,7 @@ static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *c
          if (!config->proxymatch_ip) {
              config->proxymatch_ip = apr_array_make(p, 1, sizeof(*match));
          }
-         
+
          match = (cloudflare_proxymatch_t *) apr_array_push(config->proxymatch_ip);
          rv = apr_ipsubnet_create(&match->ip, ip, s, p);
      }
@@ -265,8 +265,13 @@ static int cloudflare_modify_connection(request_rec *r)
         else {
             /* TODO: Revert connection from previous request
              */
+#if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
+            c->client_addr = conn->orig_addr;
+            c->client_ip = (char *) conn->orig_ip;
+#else
             c->remote_addr = conn->orig_addr;
             c->remote_ip = (char *) conn->orig_ip;
+#endif
         }
     }
 
@@ -284,6 +289,17 @@ static int cloudflare_modify_connection(request_rec *r)
 
     remote = apr_pstrdup(r->pool, remote);
 
+#if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
+
+#ifdef REMOTEIP_OPTIMIZED
+    memcpy(temp_sa, c->client_addr, sizeof(*temp_sa));
+    temp_sa->pool = r->pool;
+#else
+    temp_sa = c->client_addr;
+#endif
+
+#else
+
 #ifdef REMOTEIP_OPTIMIZED
     memcpy(temp_sa, c->remote_addr, sizeof(*temp_sa));
     temp_sa->pool = r->pool;
@@ -291,19 +307,28 @@ static int cloudflare_modify_connection(request_rec *r)
     temp_sa = c->remote_addr;
 #endif
 
+#endif
+
     while (remote) {
 
-        /* verify c->remote_addr is trusted if there is a trusted proxy list
+        /* verify c->client_addr is trusted if there is a trusted proxy list
          */
         if (config->proxymatch_ip) {
             int i;
             cloudflare_proxymatch_t *match;
             match = (cloudflare_proxymatch_t *)config->proxymatch_ip->elts;
             for (i = 0; i < config->proxymatch_ip->nelts; ++i) {
+#if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
+                if (apr_ipsubnet_test(match[i].ip, c->client_addr)) {
+                    internal = match[i].internal;
+                    break;
+                }
+#else
                 if (apr_ipsubnet_test(match[i].ip, c->remote_addr)) {
                     internal = match[i].internal;
                     break;
                 }
+#endif
             }
             if (i && i >= config->proxymatch_ip->nelts) {
                 if (config->deny_all) {
@@ -338,7 +363,7 @@ static int cloudflare_modify_connection(request_rec *r)
         }
 
 #ifdef REMOTEIP_OPTIMIZED
-        /* Decode remote_addr - sucks; apr_sockaddr_vars_set isn't 'public' */
+        /* Decode client_addr - sucks; apr_sockaddr_vars_set isn't 'public' */
         if (inet_pton(AF_INET, parse_remote,
                       &temp_sa->sa.sin.sin_addr) > 0) {
             apr_sockaddr_vars_set(temp_sa, APR_INET, temp_sa.port);
@@ -406,6 +431,47 @@ static int cloudflare_modify_connection(request_rec *r)
             break;
         }
 
+#if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
+        if (!conn) {
+            conn = (cloudflare_conn_t *) apr_palloc(c->pool, sizeof(*conn));
+            apr_pool_userdata_set(conn, "mod_cloudflare-conn", NULL, c->pool);
+            conn->orig_addr = c->client_addr;
+            conn->orig_ip = c->client_ip;
+        }
+        /* Set remote_ip string */
+        if (!internal) {
+            if (proxy_ips)
+                proxy_ips = apr_pstrcat(r->pool, proxy_ips, ", ",
+                                        c->client_ip, NULL);
+            else
+                proxy_ips = c->client_ip;
+        }
+
+        c->client_addr = temp_sa;
+        apr_sockaddr_ip_get(&c->client_ip, c->client_addr);
+    }
+
+    /* Nothing happened? */
+    if (!conn || (c->client_addr == conn->orig_addr))
+        return OK;
+
+    /* Fixups here, remote becomes the new Via header value, etc
+     * In the heavy operations above we used request scope, to limit
+     * conn pool memory growth on keepalives, so here we must scope
+     * the final results to the connection pool lifetime.
+     * To limit memory growth, we keep recycling the same buffer
+     * for the final apr_sockaddr_t in the remoteip conn rec.
+     */
+    c->client_ip = apr_pstrdup(c->pool, c->client_ip);
+    conn->proxied_ip = c->client_ip;
+
+    r->useragent_ip = c->client_ip;
+    r->useragent_addr = c->client_addr;
+
+    memcpy(&conn->proxied_addr, temp_sa, sizeof(*temp_sa));
+    conn->proxied_addr.pool = c->pool;
+    c->client_addr = &conn->proxied_addr;
+#else
         if (!conn) {
             conn = (cloudflare_conn_t *) apr_palloc(c->pool, sizeof(*conn));
             apr_pool_userdata_set(conn, "mod_cloudflare-conn", NULL, c->pool);
@@ -442,6 +508,7 @@ static int cloudflare_modify_connection(request_rec *r)
     memcpy(&conn->proxied_addr, temp_sa, sizeof(*temp_sa));
     conn->proxied_addr.pool = c->pool;
     c->remote_addr = &conn->proxied_addr;
+#endif
 
     if (remote)
         remote = apr_pstrdup(c->pool, remote);
@@ -457,13 +524,6 @@ static int cloudflare_modify_connection(request_rec *r)
     c->remote_logname = NULL;
 
 ditto_request_rec:
-
-    // Why do we unset the headers here?
-    //if (conn->proxied_remote) {
-    //    apr_table_setn(r->headers_in, config->header_name, conn->proxied_remote);
-    //} else {
-    //    apr_table_unset(r->headers_in, config->header_name);
-    // }
 
     if (conn->proxy_ips) {
         apr_table_setn(r->notes, "cloudflare-proxy-ip-list", conn->proxy_ips);
@@ -489,14 +549,14 @@ static const command_rec cloudflare_cmds[] =
                     "Specifies one or more proxies which are trusted "
                     "to present IP headers. Overrides the defaults."),
     AP_INIT_NO_ARGS("DenyAllButCloudFlare", deny_all_set, NULL, RSRC_CONF,
-                    "Return a 403 status to all requests which do not originate from " 
+                    "Return a 403 status to all requests which do not originate from "
                     "a CloudFlareRemoteIPTrustedProxy."),
     { NULL }
 };
 
 static void register_hooks(apr_pool_t *p)
 {
-    // We need to run very early so as to not trip up mod_security. 
+    // We need to run very early so as to not trip up mod_security.
     // Hence, this little trick, as mod_security runs at APR_HOOK_REALLY_FIRST.
     ap_hook_post_read_request(cloudflare_modify_connection, NULL, NULL, APR_HOOK_REALLY_FIRST - 10);
 }

@@ -1,9 +1,0 @@
-#!/bin/bash
-# vim: set ts=2 sw=2 et:
-
-set -e
-
-rm -f /etc/apache2/mods-enabled/cloudflare.conf
-rm -f /etc/apache2/mods-enabled/cloudflare.load
-
-#DEBHELPER#
