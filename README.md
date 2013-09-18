@@ -5,17 +5,9 @@ Copyright CloudFlare Inc. 2013
 
 Based on mod_remoteip.c, this Apache extension will replace the remote_ip variable in user's logs with the correct remote IP sent from CloudFlare. The module only performs the IP substitution for requests originating from CloudFlare IPs by default.
 
-To install, either run apxs2 directly against the .c source file:
-
-    $ apxs2 -a -i -c mod_cloudflare.c
-
-An alternative way to install is to use GNU autotools, which requires that autoconf and automake already be installed:
-
-    $ autoconf
-    $ ./configure
-    $ make
-    $ make install
-
+To install, follow the instructions on:
+    https://www.cloudflare.com/resources-downloads#mod_cloudflare
+    
 No further configuration is needed. However, if you wish to override the default values, the following directives are exposed:
 
 ### CloudFlareRemoteIPHeader ###
@@ -34,10 +26,6 @@ Note that on some systems, you may have to add a `LoadModule` directive manually
 
 Replace `/usr/lib/apache2/modules/mod_cloudflare.so` with the path to `mod_cloudflare.so` on your system.
 
-If you cannot find `apxs` or `apxs2`, install `apache2-dev` on Debian and Ubuntu, or `httpd-devel` on Red Hat and CentOS:
-
-    $ apt-get install apache2-dev
-    $ yum install httpd-devel
 
 NOTES:
 
@@ -45,4 +33,4 @@ NOTES:
 - Enabling mod\_cloudflare will not effect the performance of Apache in any noticeable manner. AB testing both over LAN and WAN show no equivalent numbers with and without mod\_cloudflare.
 - If you like, you may also add the directive `DenyAllButCloudFlare`. This will result in all requests from IPs which are not in the `CloudFlareRemoteIPTrustedProxy` range being denied with a status of 403.
 
-  [1]: https://www.cloudflare.com/wiki/What_are_the_CloudFlare_IP_address_ranges
+  [1]: https://www.cloudflare.com/ips
