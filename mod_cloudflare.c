@@ -40,8 +40,32 @@
 module AP_MODULE_DECLARE_DATA cloudflare_module;
 
 #define CF_DEFAULT_IP_HEADER "CF-Connecting-IP"
-#define CF_DEFAULT_TRUSTED_PROXY {"204.93.240.0/24","204.93.177.0/24","199.27.128.0/21","173.245.48.0/20","103.21.244.0/22","103.22.200.0/22","103.31.4.0/22","141.101.64.0/18","108.162.192.0/18","190.93.240.0/20","188.114.96.0/20","197.234.240.0/22","198.41.128.0/17","162.158.0.0/15"}
-#define CF_DEFAULT_TRUSTED_PROXY_COUNT 14
+/* CloudFlare IP Ranges from https://www.cloudflare.com/ips */
+static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
+/* IPv4 Address Ranges */
+  "204.93.240.0/24",
+  "204.93.177.0/24",
+  "199.27.128.0/21",
+  "173.245.48.0/20",
+  "103.21.244.0/22",
+  "103.22.200.0/22",
+  "103.31.4.0/22",
+  "141.101.64.0/18",
+  "108.162.192.0/18",
+  "190.93.240.0/20",
+  "188.114.96.0/20",
+  "197.234.240.0/22",
+  "198.41.128.0/17",
+  "162.158.0.0/15",
+/* IPv6 Address Ranges */
+  "2400:cb00::/32",
+  "2606:4700::/32",
+  "2803:f800::/32",
+  "2405:b500::/32",
+  "2405:8100::/32",
+};
+static const size_t CF_DEFAULT_TRUSTED_PROXY_COUNT = 
+  sizeof(CF_DEFAULT_TRUSTED_PROXY)/sizeof(char *);
 
 typedef struct {
     /** A proxy IP mask to match */
@@ -159,7 +183,7 @@ static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *c
      apr_status_t rv;
      cloudflare_proxymatch_t *match;
      int i;
-     char *proxies[] = CF_DEFAULT_TRUSTED_PROXY;
+     char **proxies = CF_DEFAULT_TRUSTED_PROXY;
 
      for (i=0; i<CF_DEFAULT_TRUSTED_PROXY_COUNT; i++) {
          char *ip = apr_pstrdup(p, proxies[i]);
