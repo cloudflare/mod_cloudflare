@@ -492,7 +492,7 @@ static int update_conn_for_proxy(request_rec *r,
     char *eos;
     unsigned char *addrbyte;
     void *internal = NULL;
-    cloudflare_conn_t *conn = NULL;
+    cloudflare_conn_t *conn = *conn_ptr;
     char *proxy_ips = NULL;
     
     remote = apr_pstrdup(r->pool, remote);
@@ -521,7 +521,7 @@ static int update_conn_for_proxy(request_rec *r,
      * hop as we'll be processing the subsequent hop separately in the case that
      * we are behind a load balancer */
     if (remote) {
-        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_EACCES, r,
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
                 "Cloudflare: Testing remote: %s", remote);
 
         /* verify c->client_addr is trusted if there is a trusted proxy list
@@ -567,13 +567,8 @@ static int update_conn_for_proxy(request_rec *r,
         while (eos >= parse_remote && *eos == ' ')
             *(eos--) = '\0';
 
-        if (eos < parse_remote) {
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
+        if (eos < parse_remote)
             return 1;
-        }
 
 #ifdef REMOTEIP_OPTIMIZED
         /* Decode client_addr - sucks; apr_sockaddr_vars_set isn't 'public' */
@@ -602,10 +597,6 @@ static int update_conn_for_proxy(request_rec *r,
                           "RemoteIP: Header %s value of %s cannot be parsed "
                           "as a client IP",
                           header_name, parse_remote);
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
             return 1;
         }
 
@@ -637,10 +628,6 @@ static int update_conn_for_proxy(request_rec *r,
                           "RemoteIP: Header %s value of %s appears to be "
                           "a private IP or nonsensical.  Ignored",
                           header_name, parse_remote);
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
             return 1;
         }
 
@@ -650,7 +637,7 @@ static int update_conn_for_proxy(request_rec *r,
             apr_pool_userdata_set(conn, "mod_cloudflare-conn", NULL, c->pool);
             *conn_ptr = conn;
             conn->orig_addr = c->client_addr;
-            conn->orig_ip = c->client_ip;
+            conn->orig_ip = apr_pstrdup(c->pool, c->client_ip);
         }
         /* Set remote_ip string */
         if (!internal) {
@@ -667,7 +654,7 @@ static int update_conn_for_proxy(request_rec *r,
 
     /* Nothing happened? */
     if (!conn || (c->client_addr == conn->orig_addr))
-        return 1;
+       return 1;
 
     /* Fixups here, remote becomes the new Via header value, etc
      * In the heavy operations above we used request scope, to limit
