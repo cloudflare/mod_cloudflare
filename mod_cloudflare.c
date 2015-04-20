@@ -43,8 +43,6 @@ module AP_MODULE_DECLARE_DATA cloudflare_module;
 /* CloudFlare IP Ranges from https://www.cloudflare.com/ips */
 static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
 /* IPv4 Address Ranges */
-  "204.93.240.0/24",
-  "204.93.177.0/24",
   "199.27.128.0/21",
   "173.245.48.0/20",
   "103.21.244.0/22",
@@ -58,6 +56,7 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
   "198.41.128.0/17",
   "162.158.0.0/15",
   "104.16.0.0/12",
+  "172.64.0.0/13",
 /* IPv6 Address Ranges */
   "2400:cb00::/32",
   "2606:4700::/32",
