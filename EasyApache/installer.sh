@@ -8,7 +8,7 @@ if [ ! -d "$CPANEL_DIR" ]; then
 fi
 
 # Download & tar mod_cloudflare.c
-mkdir mod_cloudflare && cd mod_cloudflare && wget "http://www.cloudflare.com/static/misc/mod_cloudflare/mod_cloudflare.c" && cd ..
+mkdir mod_cleoudflare && cd mod_cloudflare && wget "https://raw.githubusercontent.com/cloudflare/mod_cloudflare/master/mod_cloudflare.c" && cd ..
 tar -cvzf $CPANEL_DIR/Cpanel/Easy/ModCloudflare.pm.tar.gz mod_cloudflare/mod_cloudflare.c
 # Download ModCloudflare.pm into cPanel directory
 wget -P $CPANEL_DIR/Cpanel/Easy/ wget https://raw.githubusercontent.com/cloudflare/mod_cloudflare/master/EasyApache/ModCloudflare.pm
