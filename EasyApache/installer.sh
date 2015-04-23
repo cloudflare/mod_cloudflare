@@ -16,6 +16,6 @@ fi
 mkdir mod_cloudflare && cd mod_cloudflare && wget "https://raw.githubusercontent.com/cloudflare/mod_cloudflare/master/mod_cloudflare.c" && cd ..
 tar -cvzf $INSTALL_DIR/ModCloudflare.pm.tar.gz mod_cloudflare/mod_cloudflare.c
 # Download ModCloudflare.pm into cPanel directory
-wget -P $INSTALL_DIR/ https://raw.githubusercontent.com/cloudflare/mod_cloudflare/master/EasyApache/ModCloudflare.pm
+wget -O $INSTALL_DIR/ModCloudflare.pm https://raw.githubusercontent.com/cloudflare/mod_cloudflare/master/EasyApache/ModCloudflare.pm
 # Remove leftover files
 rm -rf mod_cloudflare/
