@@ -57,12 +57,14 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
   "162.158.0.0/15",
   "104.16.0.0/12",
   "172.64.0.0/13",
+  "127.0.0.1/32",  // localhost IPv4
 /* IPv6 Address Ranges */
   "2400:cb00::/32",
   "2606:4700::/32",
   "2803:f800::/32",
   "2405:b500::/32",
   "2405:8100::/32",
+  "::1/64",   // localhost IPv6
 };
 static const size_t CF_DEFAULT_TRUSTED_PROXY_COUNT = 
   sizeof(CF_DEFAULT_TRUSTED_PROXY)/sizeof(char *);
