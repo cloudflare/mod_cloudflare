@@ -18,9 +18,16 @@
  *
  * Supported directives and defaults:
  *
- * CloudFlareIPHeader CF-Connecting-IP
- * CloudFlareIPTrustedProxy 204.93.173.0/24
+ * CloudFlareRemoteIPHeader CF-Connecting-IP
+ * CloudFlareRemoteIPTrustedProxy <see https://www.cloudflare.com/ips>
+ * 
+ * CloudFlareLoadBalancerRemoteIPHeader X-Forwarded-For
+ * CloudFlareTrustedLoadBalancer <internal ip address ranges, e.g. 10.0.0.0/8>
  *
+ * CloudFlareBehindLoadBalancer
+ * DenyAllButCloudFlare
+ * DenyAllButLoadBalancer
+ * 
  * Version 1.0.3
  */
 
@@ -40,6 +47,8 @@
 module AP_MODULE_DECLARE_DATA cloudflare_module;
 
 #define CF_DEFAULT_IP_HEADER "CF-Connecting-IP"
+#define CF_DEFAULT_LB_HEADER "X-Forwarded-For"
+
 /* CloudFlare IP Ranges from https://www.cloudflare.com/ips */
 static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
 /* IPv4 Address Ranges */
@@ -68,6 +77,17 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
 static const size_t CF_DEFAULT_TRUSTED_PROXY_COUNT = 
   sizeof(CF_DEFAULT_TRUSTED_PROXY)/sizeof(char *);
 
+/* Look for load balancers on private address ranges */
+static const char* CF_DEFAULT_LB_TRUSTED_PROXY[] = {
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "169.254.0.0/16",
+    "127.0.0.0/8",
+};
+static const size_t CF_DEFAULT_LB_TRUSTED_PROXY_COUNT = 
+  sizeof(CF_DEFAULT_LB_TRUSTED_PROXY)/sizeof(char *);
+
 typedef struct {
     /** A proxy IP mask to match */
     apr_ipsubnet_t *ip;
@@ -76,22 +96,44 @@ typedef struct {
 } cloudflare_proxymatch_t;
 
 typedef struct {
-    /** The header to retrieve a proxy-via ip list */
+    /** The header from which to retrieve the remote IP */
     const char *header_name;
-    /** A header to record the proxied IP's
+    
+    /** The header from which to retrieve the CDN IP from the load balancer */
+    const char *lb_header_name;
+    
+    /** A header to record the proxied IPs
      * (removed as the physical connection and
-     * from the proxy-via ip header value list)
+     * from the proxy-via ip header value list) 
      */
     const char *proxies_header_name;
+    
     /** A list of trusted proxies, ideally configured
      *  with the most commonly encountered listed first
      */
-
-    int deny_all;
-    /** If this flag is set, only allow requests which originate from a CF Trusted Proxy IP.
-     * Return 403 otherwise.
-     */
     apr_array_header_t *proxymatch_ip;
+    
+    /** A list of trusted load balancers, ideally configured
+     *  with the most commonly encountered listed first
+     */
+    apr_array_header_t *lb_proxymatch_ip;
+
+    /** If this flag is set, load-balancer handling will be enabled. This
+     * will attempt to read the remote IP from lb_header_name, before then
+     * attempting to process header_name.
+     */
+    int lb_enabled;
+
+    /** If this flag is set, only allow requests which originate from a CF 
+     * Trusted Proxy IP. (Or, if lb_enabled is set, where the lb_header_name
+     * is not set to a trusted proxy IP) - Return 403 otherwise.
+     */
+    int deny_all;
+
+    /** If this flag is set, only allow requests which originate from a trusted
+     * load balancer IP. - Return 403 otherwise.
+     */
+    int lb_deny_all;
 } cloudflare_config_t;
 
 typedef struct {
@@ -100,9 +142,9 @@ typedef struct {
     /** The unmodified original ip and address */
     const char *orig_ip;
     apr_sockaddr_t *orig_addr;
-    /** The list of proxy ip's ignored as remote ip's */
+    /** The list of proxy ip's ignored as remote ips */
     const char *proxy_ips;
-    /** The remaining list of untrusted proxied remote ip's */
+    /** The remaining list of untrusted proxied remote ips */
     const char *proxied_remote;
     /** The most recently modified ip and address record */
     const char *proxied_ip;
@@ -110,6 +152,7 @@ typedef struct {
 } cloudflare_conn_t;
 
 static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *config);
+static apr_status_t set_lb_default_proxies(apr_pool_t *p, cloudflare_config_t *config);
 
 static void *create_cloudflare_server_config(apr_pool_t *p, server_rec *s)
 {
@@ -123,7 +166,11 @@ static void *create_cloudflare_server_config(apr_pool_t *p, server_rec *s)
     if (set_cf_default_proxies(p, config) != APR_SUCCESS) {
         return NULL;
     }
+    if (set_lb_default_proxies(p, config) != APR_SUCCESS) {
+        return NULL;
+    }
     config->header_name = CF_DEFAULT_IP_HEADER;
+    config->lb_header_name = CF_DEFAULT_LB_HEADER;
     return config;
 }
 
@@ -138,12 +185,18 @@ static void *merge_cloudflare_server_config(apr_pool_t *p, void *globalv,
     config->header_name = server->header_name
                         ? server->header_name
                         : global->header_name;
+    config->lb_header_name = server->lb_header_name
+                           ? server->lb_header_name
+                           : global->lb_header_name;
     config->proxies_header_name = server->proxies_header_name
                                 ? server->proxies_header_name
                                 : global->proxies_header_name;
     config->proxymatch_ip = server->proxymatch_ip
                           ? server->proxymatch_ip
                           : global->proxymatch_ip;
+    config->lb_proxymatch_ip = server->lb_proxymatch_ip
+                             ? server->lb_proxymatch_ip
+                             : global->lb_proxymatch_ip;
     return config;
 }
 
@@ -156,11 +209,36 @@ static const char *header_name_set(cmd_parms *cmd, void *dummy,
     return NULL;
 }
 
+static const char *lb_header_name_set(cmd_parms *cmd, void *dummy,
+                                      const char *arg)
+{
+    cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
+                                                       &cloudflare_module);
+    config->lb_header_name = apr_pstrdup(cmd->pool, arg);
+    return NULL;
+}
+
 static const char *deny_all_set(cmd_parms *cmd, void *dummy)
 {
     cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
                                                        &cloudflare_module);
     config->deny_all = 1;
+    return NULL;
+}
+
+static const char *lb_deny_all_set(cmd_parms *cmd, void *dummy)
+{
+    cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
+                                                       &cloudflare_module);
+    config->lb_deny_all = 1;
+    return NULL;
+}
+
+static const char *lb_enabled_set(cmd_parms *cmd, void *dummy)
+{
+    cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
+                                                       &cloudflare_module);
+    config->lb_enabled = 1;
     return NULL;
 }
 
@@ -179,45 +257,51 @@ static int looks_like_ip(const char *ipstr)
     return (*ipstr == '\0');
 }
 
-static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *config)
-{
-     apr_status_t rv;
-     cloudflare_proxymatch_t *match;
-     int i;
-     char **proxies = CF_DEFAULT_TRUSTED_PROXY;
+static apr_status_t set_default_proxies(apr_pool_t *p, cloudflare_config_t *config, const char **proxies, int proxy_count, apr_array_header_t **proxymatch_ip) {
+    apr_status_t rv;
+    cloudflare_proxymatch_t *match;
+    int i;
+    for (i = 0; i < proxy_count; i++) {
+        char *ip = apr_pstrdup(p, proxies[i]);
+        char *s = ap_strchr(ip, '/');
+        if (s) {
+            *s++ = '\0';
+        }
+        if (!*proxymatch_ip) {
+            *proxymatch_ip = apr_array_make(p, 1, sizeof(*match));
+        }
+        match = (cloudflare_proxymatch_t *) apr_array_push(*proxymatch_ip);
+        rv = apr_ipsubnet_create(&match->ip, ip, s, p);
+    }
+    return rv;
+}
 
-     for (i=0; i<CF_DEFAULT_TRUSTED_PROXY_COUNT; i++) {
-         char *ip = apr_pstrdup(p, proxies[i]);
-         char *s = ap_strchr(ip, '/');
+static apr_status_t set_lb_default_proxies(apr_pool_t *p, cloudflare_config_t *config) {
+    return set_default_proxies(p, config, CF_DEFAULT_LB_TRUSTED_PROXY, CF_DEFAULT_LB_TRUSTED_PROXY_COUNT, &config->lb_proxymatch_ip);
+}
 
-         if (s) {
-             *s++ = '\0';
-         }
-         if (!config->proxymatch_ip) {
-             config->proxymatch_ip = apr_array_make(p, 1, sizeof(*match));
-         }
-
-         match = (cloudflare_proxymatch_t *) apr_array_push(config->proxymatch_ip);
-         rv = apr_ipsubnet_create(&match->ip, ip, s, p);
-     }
-     return rv;
+static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *config) {
+    return set_default_proxies(p, config, CF_DEFAULT_TRUSTED_PROXY, CF_DEFAULT_TRUSTED_PROXY_COUNT, &config->proxymatch_ip);
 }
 
 static const char *proxies_set(cmd_parms *cmd, void *internal,
-                               const char *arg)
+                               const char *arg, int use_lb)
 {
     cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
                                                        &cloudflare_module);
     cloudflare_proxymatch_t *match;
+    apr_array_header_t **proxymatch_ip = use_lb 
+                                       ? &config->lb_proxymatch_ip
+                                       : &config->proxymatch_ip;
     apr_status_t rv;
     char *ip = apr_pstrdup(cmd->temp_pool, arg);
     char *s = ap_strchr(ip, '/');
     if (s)
         *s++ = '\0';
 
-    if (!config->proxymatch_ip)
-        config->proxymatch_ip = apr_array_make(cmd->pool, 1, sizeof(*match));
-    match = (cloudflare_proxymatch_t *) apr_array_push(config->proxymatch_ip);
+    if (!*proxymatch_ip)
+        *proxymatch_ip = apr_array_make(cmd->pool, 1, sizeof(*match));
+    match = (cloudflare_proxymatch_t *) apr_array_push(*proxymatch_ip);
     match->internal = internal;
 
     if (looks_like_ip(ip)) {
@@ -243,7 +327,7 @@ static const char *proxies_set(cmd_parms *cmd, void *internal,
             if (!(temp_sa = temp_sa->next))
                 break;
             match = (cloudflare_proxymatch_t *)
-                    apr_array_push(config->proxymatch_ip);
+                    apr_array_push(*proxymatch_ip);
             match->internal = internal;
         }
     }
@@ -258,6 +342,28 @@ static const char *proxies_set(cmd_parms *cmd, void *internal,
     return NULL;
 }
 
+static const char *cf_proxies_set(cmd_parms *cmd, void *internal,
+                                  const char *arg)
+{
+    return proxies_set(cmd, internal, arg, 0);
+}
+
+static const char *lb_proxies_set(cmd_parms *cmd, void *internal,
+                                  const char *arg)
+{
+    return proxies_set(cmd, internal, arg, 1);
+}
+
+
+static int update_conn_for_proxy(request_rec *r,
+                                 conn_rec *c,
+                                 cloudflare_conn_t **conn_ptr,
+                                 char *remote,
+                                 apr_array_header_t *proxymatch_ip,
+                                 int deny_all,
+                                 const char *header_name
+                                 );
+
 static int cloudflare_modify_connection(request_rec *r)
 {
     conn_rec *c = r->connection;
@@ -265,19 +371,8 @@ static int cloudflare_modify_connection(request_rec *r)
         ap_get_module_config(r->server->module_config, &cloudflare_module);
 
     cloudflare_conn_t *conn;
-#ifdef REMOTEIP_OPTIMIZED
-    apr_sockaddr_t temp_sa_buff;
-    apr_sockaddr_t *temp_sa = &temp_sa_buff;
-#else
-    apr_sockaddr_t *temp_sa;
-#endif
-    apr_status_t rv;
     char *remote = (char *) apr_table_get(r->headers_in, config->header_name);
-    char *proxy_ips = NULL;
-    char *parse_remote;
-    char *eos;
-    unsigned char *addrbyte;
-    void *internal = NULL;
+    char *lb_remote = (char *) apr_table_get(r->headers_in, config->lb_header_name);
 
     apr_pool_userdata_get((void*)&conn, "mod_cloudflare-conn", c->pool);
 
@@ -300,18 +395,106 @@ static int cloudflare_modify_connection(request_rec *r)
         }
     }
 
+    /* If we've received a request that didn't come through a load balancer,
+     * and DenyAllButLoadBalancer is set, we can return early. Otherwise,
+     * we must still check for a cloudflare header as the request may have
+     * come directly from there.
+     */
+    if (config->lb_enabled && !lb_remote && config->lb_deny_all) {
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_EACCES, r,
+                      "Cloudflare: Rejecting request missing load balancer header when DenyAllButLoadBalancer is set");
+        return 403;
+    }
+    
     /* Deny requests that do not have a CloudFlareRemoteIPHeader set when
      * DenyAllButCloudFlare is set. Do not modify the request otherwise and
-     * return early.
+     * return early, unless the request has come via a load balancer.
      */
     if (!remote) {
         if (config->deny_all) {
+            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_EACCES, r,
+                          "Cloudflare: Rejecting request missing cloudflare header when DenyAllButCloudFlare is set");
             return 403;
         }
 
-        return OK;
+        if (!config->lb_enabled || !lb_remote) {
+            return OK;
+        }
     }
 
+    /* Update connection for load balancer first, so that when we present
+     * it to the cloudflare mechanism it's already updated
+     */
+    if (config->lb_enabled && lb_remote) {
+        if (!update_conn_for_proxy(r,
+                                   c,
+                                   &conn,
+                                   lb_remote, 
+                                   config->lb_proxymatch_ip, 
+                                   config->lb_deny_all,
+                                   config->lb_header_name))
+        {
+            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_EACCES, r,
+                          "Cloudflare: Rejecting request that does not come from load balancer, when DenyAllButLoadBalancer is set");
+            return 403;
+        }
+    }
+
+    if (remote) {
+        if (!update_conn_for_proxy(r,
+                                   c,
+                                   &conn,
+                                   remote, 
+                                   config->proxymatch_ip, 
+                                   config->deny_all,
+                                   config->header_name))
+        {
+            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, APR_EACCES, r,
+                          "Cloudflare: Rejecting request that does not come from cloudflare, when DenyAllButLoadBalancer is set");
+            return 403;
+        }
+    }
+
+ditto_request_rec:
+
+    if (conn->proxy_ips) {
+        apr_table_setn(r->notes, "cloudflare-proxy-ip-list", conn->proxy_ips);
+        if (config->proxies_header_name)
+            apr_table_setn(r->headers_in, config->proxies_header_name,
+                           conn->proxy_ips);
+    }
+
+    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
+                  conn->proxy_ips
+                      ? "Using %s as client's IP by proxies %s"
+                      : "Using %s as client's IP by internal proxies",
+                  conn->proxied_ip, conn->proxy_ips);
+    return OK;
+}
+
+static int update_conn_for_proxy(request_rec *r,
+                                 conn_rec *c,
+                                 cloudflare_conn_t **conn_ptr,
+                                 char *remote,
+                                 apr_array_header_t *proxymatch_ip,
+                                 int deny_all,
+                                 const char *header_name
+                                 )
+{ 
+    apr_status_t rv;
+#ifdef REMOTEIP_OPTIMIZED
+    apr_sockaddr_t temp_sa_buff;
+    apr_sockaddr_t *temp_sa = &temp_sa_buff;
+#else
+    apr_sockaddr_t *temp_sa;
+#endif
+    char *parse_remote;
+    char *eos;
+    unsigned char *addrbyte;
+    void *internal = NULL;
+    cloudflare_conn_t *conn = *conn_ptr;
+    char *proxy_ips = NULL;
+    
     remote = apr_pstrdup(r->pool, remote);
 
 #if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
@@ -334,15 +517,20 @@ static int cloudflare_modify_connection(request_rec *r)
 
 #endif
 
-    while (remote) {
+    /* in previous versions this was a loop, however we only care about the next
+     * hop as we'll be processing the subsequent hop separately in the case that
+     * we are behind a load balancer */
+    if (remote) {
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+                "Cloudflare: Testing remote: %s", remote);
 
         /* verify c->client_addr is trusted if there is a trusted proxy list
          */
-        if (config->proxymatch_ip) {
+        if (proxymatch_ip) {
             int i;
             cloudflare_proxymatch_t *match;
-            match = (cloudflare_proxymatch_t *)config->proxymatch_ip->elts;
-            for (i = 0; i < config->proxymatch_ip->nelts; ++i) {
+            match = (cloudflare_proxymatch_t *)proxymatch_ip->elts;
+            for (i = 0; i < proxymatch_ip->nelts; ++i) {
 #if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
                 if (apr_ipsubnet_test(match[i].ip, c->client_addr)) {
                     internal = match[i].internal;
@@ -355,11 +543,11 @@ static int cloudflare_modify_connection(request_rec *r)
                 }
 #endif
             }
-            if (i && i >= config->proxymatch_ip->nelts) {
-                if (config->deny_all) {
-                    return 403;
+            if (i && i >= proxymatch_ip->nelts) {
+                if (deny_all) {
+                    return 0;
                 } else {
-                    break;
+                    return 1;
                 }
             }
         }
@@ -379,13 +567,8 @@ static int cloudflare_modify_connection(request_rec *r)
         while (eos >= parse_remote && *eos == ' ')
             *(eos--) = '\0';
 
-        if (eos < parse_remote) {
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
-            break;
-        }
+        if (eos < parse_remote)
+            return 1;
 
 #ifdef REMOTEIP_OPTIMIZED
         /* Decode client_addr - sucks; apr_sockaddr_vars_set isn't 'public' */
@@ -413,12 +596,8 @@ static int cloudflare_modify_connection(request_rec *r)
             ap_log_rerror(APLOG_MARK, APLOG_DEBUG,  rv, r,
                           "RemoteIP: Header %s value of %s cannot be parsed "
                           "as a client IP",
-                          config->header_name, parse_remote);
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
-            break;
+                          header_name, parse_remote);
+            return 1;
         }
 
         addrbyte = (unsigned char *) &temp_sa->sa.sin.sin_addr;
@@ -448,20 +627,17 @@ static int cloudflare_modify_connection(request_rec *r)
             ap_log_rerror(APLOG_MARK, APLOG_DEBUG,  rv, r,
                           "RemoteIP: Header %s value of %s appears to be "
                           "a private IP or nonsensical.  Ignored",
-                          config->header_name, parse_remote);
-            if (remote)
-                *(remote + strlen(remote)) = ',';
-            else
-                remote = parse_remote;
-            break;
+                          header_name, parse_remote);
+            return 1;
         }
 
 #if AP_MODULE_MAGIC_AT_LEAST(20111130,0)
         if (!conn) {
             conn = (cloudflare_conn_t *) apr_palloc(c->pool, sizeof(*conn));
             apr_pool_userdata_set(conn, "mod_cloudflare-conn", NULL, c->pool);
+            *conn_ptr = conn;
             conn->orig_addr = c->client_addr;
-            conn->orig_ip = c->client_ip;
+            conn->orig_ip = apr_pstrdup(c->pool, c->client_ip);
         }
         /* Set remote_ip string */
         if (!internal) {
@@ -478,7 +654,7 @@ static int cloudflare_modify_connection(request_rec *r)
 
     /* Nothing happened? */
     if (!conn || (c->client_addr == conn->orig_addr))
-        return OK;
+       return 1;
 
     /* Fixups here, remote becomes the new Via header value, etc
      * In the heavy operations above we used request scope, to limit
@@ -500,6 +676,7 @@ static int cloudflare_modify_connection(request_rec *r)
         if (!conn) {
             conn = (cloudflare_conn_t *) apr_palloc(c->pool, sizeof(*conn));
             apr_pool_userdata_set(conn, "mod_cloudflare-conn", NULL, c->pool);
+            *conn_ptr = conn;
             conn->orig_addr = c->remote_addr;
             conn->orig_ip = c->remote_ip;
         }
@@ -519,7 +696,7 @@ static int cloudflare_modify_connection(request_rec *r)
 
     /* Nothing happened? */
     if (!conn || (c->remote_addr == conn->orig_addr))
-        return OK;
+        return 1;
 
     /* Fixups here, remote becomes the new Via header value, etc
      * In the heavy operations above we used request scope, to limit
@@ -539,7 +716,7 @@ static int cloudflare_modify_connection(request_rec *r)
         remote = apr_pstrdup(c->pool, remote);
     conn->proxied_remote = remote;
     conn->prior_remote = apr_pstrdup(c->pool, apr_table_get(r->headers_in,
-                                                      config->header_name));
+                                                            header_name));
     if (proxy_ips)
         proxy_ips = apr_pstrdup(c->pool, proxy_ips);
     conn->proxy_ips = proxy_ips;
@@ -548,21 +725,7 @@ static int cloudflare_modify_connection(request_rec *r)
     c->remote_host = NULL;
     c->remote_logname = NULL;
 
-ditto_request_rec:
-
-    if (conn->proxy_ips) {
-        apr_table_setn(r->notes, "cloudflare-proxy-ip-list", conn->proxy_ips);
-        if (config->proxies_header_name)
-            apr_table_setn(r->headers_in, config->proxies_header_name,
-                           conn->proxy_ips);
-    }
-
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
-                  conn->proxy_ips
-                      ? "Using %s as client's IP by proxies %s"
-                      : "Using %s as client's IP by internal proxies",
-                  conn->proxied_ip, conn->proxy_ips);
-    return OK;
+    return 1;
 }
 
 static const command_rec cloudflare_cmds[] =
@@ -570,12 +733,26 @@ static const command_rec cloudflare_cmds[] =
     AP_INIT_TAKE1("CloudFlareRemoteIPHeader", header_name_set, NULL, RSRC_CONF,
                   "Specifies a request header to trust as the client IP, "
                   "Overrides the default of CF-Connecting-IP"),
-    AP_INIT_ITERATE("CloudFlareRemoteIPTrustedProxy", proxies_set, 0, RSRC_CONF,
+    AP_INIT_ITERATE("CloudFlareRemoteIPTrustedProxy", cf_proxies_set, 0, RSRC_CONF,
                     "Specifies one or more proxies which are trusted "
                     "to present IP headers. Overrides the defaults."),
     AP_INIT_NO_ARGS("DenyAllButCloudFlare", deny_all_set, NULL, RSRC_CONF,
                     "Return a 403 status to all requests which do not originate from "
-                    "a CloudFlareRemoteIPTrustedProxy."),
+                    "a CloudFlareRemoteIPTrustedProxy. If CloudFlareBehindLoadBalancer "
+                    "is set, this restriction is applied to the value in "
+                    "CloudFlareLoadBalacnerRemoteIPHeader"),
+    AP_INIT_NO_ARGS("CloudFlareBehindLoadBalancer", lb_enabled_set, NULL, RSRC_CONF,
+                    "Enables CloudFlare load-balancer handling, where the cloudflare "
+                    "service may be behind another proxy that reports a different IP."),
+    AP_INIT_TAKE1("CloudFlareLoadBalancerRemoteIPHeader", header_name_set, NULL, RSRC_CONF,
+                  "Specifies a request header to trust as the client (or CDN) IP, "
+                  "Overrides the default of X-Forwarded-For"),
+    AP_INIT_ITERATE("CloudFlareTrustedLoadBalancer", lb_proxies_set, 0, RSRC_CONF,
+                    "Specifies one or more load balancer proxies which are trusted "
+                    "to present IP headers. Overrides the defaults."),
+    AP_INIT_NO_ARGS("DenyAllButLoadBalancer", lb_deny_all_set, NULL, RSRC_CONF,
+                    "Return a 403 status to all requests which do not originate from "
+                    "a CloudFlareTrustedLoadBalancer."),
     { NULL }
 };
 
