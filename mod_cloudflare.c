@@ -144,6 +144,9 @@ static void *merge_cloudflare_server_config(apr_pool_t *p, void *globalv,
     config->proxymatch_ip = server->proxymatch_ip
                           ? server->proxymatch_ip
                           : global->proxymatch_ip;
+    config->deny_all = server->deny_all
+                     ? server->deny_all
+                     : global->deny_all;
     return config;
 }
 
