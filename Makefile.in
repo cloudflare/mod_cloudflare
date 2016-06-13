@@ -1,0 +1,46 @@
+srcdir = @srcdir@
+
+DESTDIR =
+LIBEXECDIR = @LIBEXECDIR@
+
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LDLIBS = @LDLIBS@
+
+APXS = @APXS@
+
+all : mod_cloudflare.la
+
+mod_cloudflare.la : mod_cloudflare.c
+	$(APXS) -c $(CPPFLAGS) $(CFLAGS) $(srcdir)/mod_cloudflare.c $(LDFLAGS) $(LDLIBS)
+
+$(DESTDIR)$(LIBEXECDIR) :
+	mkdir -p $@
+
+install : all $(DESTDIR)$(LIBEXECDIR)
+	$(APXS) -i -S LIBEXECDIR=$(DESTDIR)$(LIBEXECDIR) -n 'mod_cloudflare' $(srcdir)/mod_cloudflare.la
+
+clean :
+	-rm -f $(srcdir)/.libs/*
+	-rm -f $(srcdir)/*.o
+	-rm -f $(srcdir)/*.lo
+	-rm -f $(srcdir)/*.la
+	-rm -f $(srcdir)/*.slo
+	-rm -rf $(srcdir)/.libs
+	-rm -rf autom4te.cache
+	-rm -f config.log config.status
+
+distclean : clean
+	-rm -f Makefile
+
+gitclean : distclean
+	-rm -f configure src-package.tar.gz
+
+src-package:
+	@tar cz *.c configure.ac Makefile.in LICENSE ChangeLog README VERSION > $@.tar.gz 
+
+$(srcdir)/configure: configure.ac
+	cd '$(srcdir)' && autoconf && ./configure
+
+Makefile: Makefile.in configure

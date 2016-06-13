@@ -1,0 +1,20 @@
+* Jun 01 2016 CloudFlare Inc <help@cloudflare.com> - 2016.6.0
+- Set HTTPS envrionment variable for Flexible SSL reqquests
+
+* May 16 2016 CloudFlare Inc <help@cloudflare.com> - 2016.5.1
+- Update CloudFlare IP ranges
+- Add EasyApache support
+- Update versioning scheme
+
+* Jul 07 2015 CloudFlare Inc <help@cloudflare.com> - 1.3.1
+- Update CloudFlare IP ranges
+
+* Apr 15 2014 CloudFlare Inc <help@cloudflare.com> - 1.3.0
+- Enable IPv6 support
+
+* Mar 20 2013 CloudFlare Inc <help@cloudflare.com> - 1.2.0
+- Refactor for Apache 2.4, utilize autotools for RPM/DEB builds
+
+* Aug 30 2012 CloudFlare Inc <help@cloudflare.com> - 1.1.2
+- Bugfix for intermittent segfaults under some conditions.
+- Pulled from remoteip codebase.

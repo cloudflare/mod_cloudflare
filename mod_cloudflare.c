@@ -278,8 +278,17 @@ static int cloudflare_modify_connection(request_rec *r)
     char *eos;
     unsigned char *addrbyte;
     void *internal = NULL;
+    const char *cf_visitor_header = NULL;
 
     apr_pool_userdata_get((void*)&conn, "mod_cloudflare-conn", c->pool);
+
+    cf_visitor_header = apr_table_get(r->headers_in, "CF-Visitor");
+    if (cf_visitor_header != NULL) {
+        if ((remote) && (strstr(cf_visitor_header, "https") != NULL)) {
+            apr_table_t *e = r->subprocess_env;
+            apr_table_addn(e, "HTTPS", "on");
+        }
+    }
 
     if (conn) {
         if (remote && (strcmp(remote, conn->prior_remote) == 0)) {

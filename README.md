@@ -1,13 +1,23 @@
 # mod_cloudflare for Apache #
-Copyright CloudFlare Inc. 2013
+Copyright CloudFlare Inc. 2016
 
 ## mod_cloudflare.c ##
 
 Based on mod_remoteip.c, this Apache extension will replace the remote_ip variable in user's logs with the correct remote IP sent from CloudFlare. The module only performs the IP substitution for requests originating from CloudFlare IPs by default.
 
-To install, follow the instructions on:
-    https://www.cloudflare.com/resources-downloads#mod_cloudflare
-    
+In addition to this, the extension will also set the HTTPS environment variable to "on" in cases where Flexible SSL is in use. This prevents software such as WordPress from being broken by Flexible SSL.
+
+To install, either run apxs2 directly against the .c source file:
+
+    $ apxs2 -a -i -c mod_cloudflare.c
+
+An alternative way to install is to use GNU autotools, which requires that autoconf and automake already be installed:
+
+    $ autoconf
+    $ ./configure
+    $ make
+    $ make install
+
 No further configuration is needed. However, if you wish to override the default values, the following directives are exposed:
 
 ### CloudFlareRemoteIPHeader ###
@@ -26,6 +36,10 @@ Note that on some systems, you may have to add a `LoadModule` directive manually
 
 Replace `/usr/lib/apache2/modules/mod_cloudflare.so` with the path to `mod_cloudflare.so` on your system.
 
+If you cannot find `apxs` or `apxs2`, install `apache2-dev` on Debian and Ubuntu, or `httpd-devel` on Red Hat and CentOS:
+
+    $ apt-get install apache2-dev
+    $ yum install httpd-devel
 
 NOTES:
 
