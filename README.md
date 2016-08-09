@@ -46,5 +46,5 @@ NOTES:
 - If mod\_cloudflare and mod\_remoteip are enabled on the same web server, the server will crash if they both try to set the remote IP to a different value.
 - Enabling mod\_cloudflare will not effect the performance of Apache in any noticeable manner. AB testing both over LAN and WAN show no equivalent numbers with and without mod\_cloudflare.
 - If you like, you may also add the directive `DenyAllButCloudFlare`. This will result in all requests from IPs which are not in the `CloudFlareRemoteIPTrustedProxy` range being denied with a status of 403.
-- If you set the optional directive `CloudFlareFlag` to a value of you choice (for example `CloudFlareFlag X-CHECKCFsomesecret`), this will result in a new request header being added to all requests with a value of `t` if the request was received from a trusted proxy and `f` if otherwise
+- If you set the optional directive `CloudFlareFlag` to a value of your choice (for example `CloudFlareFlag X-CHECKCFSOMESECRET`), this will result in a new request header being added to all requests with a value of `t` if the request was received from a trusted proxy and `f` if otherwise
   [1]: https://www.cloudflare.com/ips
