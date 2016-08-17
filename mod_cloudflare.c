@@ -21,7 +21,6 @@
  * CloudFlareIPHeader CF-Connecting-IP
  * CloudFlareIPTrustedProxy 204.93.173.0/24
  *
- * Version 1.0.3
  */
 
 #include "ap_config.h"
@@ -60,10 +59,12 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
   "199.27.128.0/21",
 /* IPv6 Address Ranges */
   "2400:cb00::/32",
+  "2405:8100::/32",
+  "2405:b500::/32",
   "2606:4700::/32",
   "2803:f800::/32",
-  "2405:b500::/32",
-  "2405:8100::/32",
+  "2c0f:f248::/32",
+  "2a06:98c0::/29",
 };
 static const size_t CF_DEFAULT_TRUSTED_PROXY_COUNT = 
   sizeof(CF_DEFAULT_TRUSTED_PROXY)/sizeof(char *);

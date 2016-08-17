@@ -1,3 +1,7 @@
+* Aut 05 2016 CloudFlare Inc <help@cloudflare.com> - 2016.8.0
+- Updated CloudFlare IPv6 ranges
+- Support for installing on EasyApache4
+
 * Jun 01 2016 CloudFlare Inc <help@cloudflare.com> - 2016.6.0
 - Set HTTPS envrionment variable for Flexible SSL reqquests
 
