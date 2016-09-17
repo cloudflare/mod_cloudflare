@@ -191,7 +191,7 @@ static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *c
 {
      apr_status_t rv;
      cloudflare_proxymatch_t *match;
-     int i;
+     size_t i;
      const char **proxies = CF_DEFAULT_TRUSTED_PROXY;
 
      for (i=0; i<CF_DEFAULT_TRUSTED_PROXY_COUNT; i++) {
