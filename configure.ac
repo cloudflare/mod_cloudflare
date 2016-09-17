@@ -74,38 +74,6 @@ AC_SUBST([APACHE_CPPFLAGS])
 AC_SUBST([APACHE_LDFLAGS])
 AC_SUBST([APACHE_LIBS])
 
-# Apache version
-HTTPD="`${APXS} -q SBINDIR`/`${APXS} -q TARGET`"
-AC_SUBST([HTTPD])
-AC_MSG_CHECKING([Apache version])
-AS_IF([test -x ${HTTPD}], [
-  HTTPD_VERSION=` \
-    ${HTTPD} -v | \
-    awk '/version/ {print $3}' | \
-    awk -F/ '{print $2}' \
-  `
-], [
-  AS_IF([test -f ${HTTPD_INCLUDEDIR}/ap_release.h], [
-    HTTPD_VERSION=` \
-      grep '^#define AP_SERVER_MAJORVERSION_NUMBER ' ${HTTPD_INCLUDEDIR}/ap_release.h | \
-      sed -e 's/^#define AP_SERVER_MAJORVERSION_NUMBER \([0-9]\).*/\1.X/' \
-    `
-  ], [
-    AS_IF([test -f ${HTTPD_INCLUDEDIR}/httpd.h], [
-      HTTPD_VERSION=` \
-	grep '^#define APACHE_RELEASE ' \
-	${HTTPD_INCLUDEDIR}/httpd.h | \
-	sed -e 's/^#define APACHE_RELEASE \([0-9]\).*/\1.X/' \
-      `
-    ], [
-      HTTPD_VERSION="2.?"
-    ])
-  ])
-])
-AC_MSG_RESULT([$HTTPD_VERSION])
-
-HTTPD_MAJOR_VERSION=`echo ${HTTPD_VERSION} | sed -e 's/\..*//'`
-
 AC_CONFIG_FILES([
   Makefile
 ])
