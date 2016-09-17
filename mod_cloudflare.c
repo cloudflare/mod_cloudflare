@@ -23,6 +23,13 @@
  *
  */
 
+/* The __unused__ attribute was added in gcc 3.2.7.  */
+#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)
+# define ATTRIBUTE_UNUSED __attribute__((__unused__))
+#else
+# define ATTRIBUTE_UNUSED /* empty */
+#endif
+
 #include "ap_config.h"
 #include "ap_mmn.h"
 #include "httpd.h"
@@ -112,7 +119,7 @@ typedef struct {
 
 static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *config);
 
-static void *create_cloudflare_server_config(apr_pool_t *p, server_rec *s)
+static void *create_cloudflare_server_config(apr_pool_t *p, server_rec *s ATTRIBUTE_UNUSED)
 {
     cloudflare_config_t *config = apr_pcalloc(p, sizeof *config);
     /* config->header_name = NULL;
@@ -148,7 +155,7 @@ static void *merge_cloudflare_server_config(apr_pool_t *p, void *globalv,
     return config;
 }
 
-static const char *header_name_set(cmd_parms *cmd, void *dummy,
+static const char *header_name_set(cmd_parms *cmd, void *dummy ATTRIBUTE_UNUSED,
                                    const char *arg)
 {
     cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
@@ -157,7 +164,7 @@ static const char *header_name_set(cmd_parms *cmd, void *dummy,
     return NULL;
 }
 
-static const char *deny_all_set(cmd_parms *cmd, void *dummy)
+static const char *deny_all_set(cmd_parms *cmd, void *dummy ATTRIBUTE_UNUSED)
 {
     cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
                                                        &cloudflare_module);
@@ -184,8 +191,8 @@ static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *c
 {
      apr_status_t rv;
      cloudflare_proxymatch_t *match;
-     int i;
-     char **proxies = CF_DEFAULT_TRUSTED_PROXY;
+     size_t i;
+     const char **proxies = CF_DEFAULT_TRUSTED_PROXY;
 
      for (i=0; i<CF_DEFAULT_TRUSTED_PROXY_COUNT; i++) {
          char *ip = apr_pstrdup(p, proxies[i]);
@@ -567,11 +574,14 @@ ditto_request_rec:
                            conn->proxy_ips);
     }
 
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
-                  conn->proxy_ips
-                      ? "Using %s as client's IP by proxies %s"
-                      : "Using %s as client's IP by internal proxies",
-                  conn->proxied_ip, conn->proxy_ips);
+    if (conn->proxy_ips)
+	ap_log_rerror(APLOG_MARK, APLOG_INFO | APLOG_NOERRNO, 0, r,
+		      "Using %s as client's IP by proxies %s",
+		      conn->proxied_ip, conn->proxy_ips);
+    else
+	ap_log_rerror(APLOG_MARK, APLOG_INFO | APLOG_NOERRNO, 0, r,
+		      "Using %s as client's IP by internal proxies",
+		      conn->proxied_ip);
     return OK;
 }
 
@@ -589,7 +599,7 @@ static const command_rec cloudflare_cmds[] =
     { NULL }
 };
 
-static void register_hooks(apr_pool_t *p)
+static void register_hooks(apr_pool_t *p ATTRIBUTE_UNUSED)
 {
     // We need to run very early so as to not trip up mod_security.
     // Hence, this little trick, as mod_security runs at APR_HOOK_REALLY_FIRST.
