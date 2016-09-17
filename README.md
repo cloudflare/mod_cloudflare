@@ -13,7 +13,7 @@ To install, either run apxs2 directly against the .c source file:
 
 An alternative way to install is to use GNU autotools, which requires that autoconf and automake already be installed:
 
-    $ autoconf
+    $ ./bootstrap.sh
     $ ./configure
     $ make
     $ make install
