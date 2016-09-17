@@ -574,11 +574,14 @@ ditto_request_rec:
                            conn->proxy_ips);
     }
 
-    ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
-                  conn->proxy_ips
-                      ? "Using %s as client's IP by proxies %s"
-                      : "Using %s as client's IP by internal proxies",
-                  conn->proxied_ip, conn->proxy_ips);
+    if (conn->proxy_ips)
+	ap_log_rerror(APLOG_MARK, APLOG_INFO | APLOG_NOERRNO, 0, r,
+		      "Using %s as client's IP by proxies %s",
+		      conn->proxied_ip, conn->proxy_ips);
+    else
+	ap_log_rerror(APLOG_MARK, APLOG_INFO | APLOG_NOERRNO, 0, r,
+		      "Using %s as client's IP by internal proxies",
+		      conn->proxied_ip);
     return OK;
 }
 
