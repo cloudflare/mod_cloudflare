@@ -38,13 +38,11 @@ function install_ea3 {
 function install_ea4 {
 
     #
-    # Reasonably reliable way to get OS distribution name and version
+    # Get OS version from redhat-release
     #
-    DISTRO_NAME=`cat /etc/os-release | grep "^NAME" | sed 's/NAME="//' | sed 's/"//'`
-    DISTRO_VERSION=`cat /etc/os-release | grep "^VERSION_ID" | sed 's/VERSION_ID="//' | sed 's/"//'`
+    DISTRO_NAME=`cat /etc/redhat-release | awk {'print$1'}`
+    DISTRO_VERSION=`cat /etc/redhat-release | sed -e 's/.*release \(.*\) (.*)/\1/' -e 's/\..*//'`
 
-    # Remove trailing minor version
-    DISTRO_VERSION=`sed "s/\..*//" <<<"$DISTRO_VERSION"`
 
     if [[ $DISTRO_VERSION == "6" || $DISTRO_VERSION == "7" ]]; then
     echo
