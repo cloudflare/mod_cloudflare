@@ -95,13 +95,8 @@ function install_ea4 {
 # Main
 #
 
-#
-# Check which version of cPanel we have
-#
-CPANEL_VERSION=`/usr/local/cpanel/cpanel -V | sed "s/\..*$//"`
-
-# Version 58 and up have Easy Apache 4
-if [ "$CPANEL_VERSION" -gt "57" ]; then
+# Check if Easy Apache 4 is enabled
+if [ -e "/etc/cpanel/ea4/is_ea4" ]; then
    install_ea4
 else
    install_ea3
