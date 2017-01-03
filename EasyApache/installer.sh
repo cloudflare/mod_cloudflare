@@ -95,7 +95,7 @@ function install_ea4 {
 # Main
 #
 
-# Check if Easy Apache 4 is enabled
+# Check if EasyApache 4 is enabled
 if [ -e "/etc/cpanel/ea4/is_ea4" ]; then
    install_ea4
 else
