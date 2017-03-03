@@ -1,6 +1,12 @@
 # mod_cloudflare for Apache #
 Copyright CloudFlare Inc. 2016
 
+## cPanel/WHM EasyApache4 Incompatibility ##
+The installer for EasyApache4 currently has some compatibility issues with distributions that do not have the `/etc/os-release` file available (CentOS 6, CentOS 6.5, etc).
+
+Please see cPanel documentation for installing `mod_cloudflare` for the time being:
+https://documentation.cpanel.net/display/CKB/Apache+Module%3A+CloudFlare
+
 ## mod_cloudflare.c ##
 
 Based on mod_remoteip.c, this Apache extension will replace the remote_ip variable in user's logs with the correct remote IP sent from CloudFlare. The module only performs the IP substitution for requests originating from CloudFlare IPs by default.
