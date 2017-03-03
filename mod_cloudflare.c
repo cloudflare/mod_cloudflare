@@ -88,6 +88,11 @@ typedef struct {
      *  with the most commonly encountered listed first
      */
 
+    const char *edge_flag;
+    /** a header name that will be set in requests
+     *  indicating if request came from CF proxy ip or not
+     */
+
     int deny_all;
     /** If this flag is set, only allow requests which originate from a CF Trusted Proxy IP.
      * Return 403 otherwise.
@@ -145,6 +150,9 @@ static void *merge_cloudflare_server_config(apr_pool_t *p, void *globalv,
     config->proxymatch_ip = server->proxymatch_ip
                           ? server->proxymatch_ip
                           : global->proxymatch_ip;
+    config->edge_flag = server->edge_flag
+                      ? server->edge_flag
+                      : global->edge_flag;
     return config;
 }
 
@@ -154,6 +162,15 @@ static const char *header_name_set(cmd_parms *cmd, void *dummy,
     cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
                                                        &cloudflare_module);
     config->header_name = apr_pstrdup(cmd->pool, arg);
+    return NULL;
+}
+
+static const char *edge_flag_set(cmd_parms *cmd, void *dummy,
+                                   const char *arg)
+{
+    cloudflare_config_t *config = ap_get_module_config(cmd->server->module_config,
+                                                       &cloudflare_module);
+    config->edge_flag = apr_pstrdup(cmd->pool, arg);
     return NULL;
 }
 
@@ -279,6 +296,7 @@ static int cloudflare_modify_connection(request_rec *r)
     char *eos;
     unsigned char *addrbyte;
     void *internal = NULL;
+    char *cf_edge = "t";
     const char *cf_visitor_header = NULL;
 
     apr_pool_userdata_get((void*)&conn, "mod_cloudflare-conn", c->pool);
@@ -317,8 +335,10 @@ static int cloudflare_modify_connection(request_rec *r)
     if (!remote) {
         if (config->deny_all) {
             return 403;
+        } else if (config->edge_flag) {          
+          apr_table_setn(r->headers_in, config->edge_flag,
+                           ("f"));          
         }
-
         return OK;
     }
 
@@ -368,7 +388,10 @@ static int cloudflare_modify_connection(request_rec *r)
             if (i && i >= config->proxymatch_ip->nelts) {
                 if (config->deny_all) {
                     return 403;
-                } else {
+                } else {                    
+                    if (config->edge_flag) {
+                        *cf_edge = 'f';
+                    }                    
                     break;
                 }
             }
@@ -566,6 +589,11 @@ ditto_request_rec:
             apr_table_setn(r->headers_in, config->proxies_header_name,
                            conn->proxy_ips);
     }
+    
+    if (config->edge_flag) {
+      apr_table_setn(r->headers_in, config->edge_flag,
+                           cf_edge);      
+    } 
 
     ap_log_rerror(APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, r,
                   conn->proxy_ips
@@ -586,6 +614,9 @@ static const command_rec cloudflare_cmds[] =
     AP_INIT_NO_ARGS("DenyAllButCloudFlare", deny_all_set, NULL, RSRC_CONF,
                     "Return a 403 status to all requests which do not originate from "
                     "a CloudFlareRemoteIPTrustedProxy."),
+    AP_INIT_TAKE1("CloudFlareFlag",edge_flag_set,NULL,RSRC_CONF,
+                  "add a header of this name to all requests which originate from "
+                  "a CloudFlareRemoteIPTrustedProxy."),
     { NULL }
 };
 
