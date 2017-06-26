@@ -28,7 +28,7 @@ This specifies the header which contains the original IP. Default:
 
 ### CloudFlareRemoteIPTrustedProxy ###
 
-This for trusted IP addresses or ranges from which we will allow the `CloudFlareRemoteIPHeader` to be used from. See [here][1] for a complete list.
+This is to add additional trusted IP addresses or ranges from which we will allow `CloudFlareRemoteIPHeader` to be used from. We will rewrite remote IPs and the SSL variable (in the case of Flexible SSL) from these trusted IPs, additionally `DenyAllButCloudflare` will not deny requests from IPs listed here. See [here][1] for a complete list.
 
 ### DenyAllButCloudFlare ###
 
