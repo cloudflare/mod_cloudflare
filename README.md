@@ -28,7 +28,15 @@ This specifies the header which contains the original IP. Default:
 
 ### CloudFlareRemoteIPTrustedProxy ###
 
-This is the IP range from which we will allow the `CloudFlareRemoteIPHeader` to be used from. See [here][1] for a complete list.
+This for trusted IP addresses or ranges from which we will allow the `CloudFlareRemoteIPHeader` to be used from. See [here][1] for a complete list.
+
+### DenyAllButCloudFlare ###
+
+When this is set, we will deny requests from IPs which aren't in the `CloudFlareRemoteIPTrustedProxy` directive or are not from a Cloudflare IP.
+
+Note that by default, `DenyAllButCloudflare` will not allow Remote IPs, they will need to be whitelisted through `CloudFlareRemoteIPTrustedProxy`.
+
+## Loading the Module ##
 
 Note that on some systems, you may have to add a `LoadModule` directive manually. This should look like:
 
@@ -36,12 +44,14 @@ Note that on some systems, you may have to add a `LoadModule` directive manually
 
 Replace `/usr/lib/apache2/modules/mod_cloudflare.so` with the path to `mod_cloudflare.so` on your system.
 
+## Installing apxs/apxs2 ##
+
 If you cannot find `apxs` or `apxs2`, install `apache2-dev` on Debian and Ubuntu, or `httpd-devel` on Red Hat and CentOS:
 
     $ apt-get install apache2-dev
     $ yum install httpd-devel
 
-NOTES:
+## Additional Notes ##
 
 - If mod\_cloudflare and mod\_remoteip are enabled on the same web server, the server will crash if they both try to set the remote IP to a different value.
 - Enabling mod\_cloudflare will not effect the performance of Apache in any noticeable manner. AB testing both over LAN and WAN show no equivalent numbers with and without mod\_cloudflare.
