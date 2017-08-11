@@ -15,6 +15,8 @@ To use it (replacing the original mode if you already use it), simply clone it a
     apxs2 -a -i -c mod_cloudflare.c
     service apache2 restart
 
+CloudFlare is welcome to implement this in their official repo :)
+
 
 ## mod_cloudflare.c ##
 
@@ -35,6 +37,7 @@ An alternative way to install is to use GNU autotools, which requires that autoc
     
 ### OS Support ###
 
+- Debian/Ubuntu - Supported
 - CentOS - Supported
 - CloudLinux - Not Supported
 
