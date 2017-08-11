@@ -7,7 +7,7 @@ Modded by p0358
 
 This fork adds `CLOUDFLARE_CONNECTION` env variable set to "true" if connection originated from one of module's trusted proxy IPs. It is very useful since you cannot add `DenyAllButCloudflare` directive everywhere, but instead you can now use `Require env CLOUDFLARE_CONNECTION` or `Require expr "-T env('CLOUDFLARE_CONNECTION')"` (the latter example provided if you want to mix it with other expressions, you could also consider the first one inside `RequireAll` block instead).
 
-To use it (replacing the original mode if you already use it), simply clone it and use instructions from below. On Ubuntu/Debian you can just execute:
+To use it (replacing the original mode if you already use it), simply clone it and use install instructions from below. Or on Ubuntu/Debian you can just execute:
 
     git clone https://github.com/p0358/mod_cloudflare.git
     cd mod_cloudflare
