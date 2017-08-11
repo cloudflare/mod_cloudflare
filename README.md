@@ -1,6 +1,21 @@
 # mod_cloudflare for Apache #
 Copyright CloudFlare Inc. 2016
 
+Modded by p0358
+
+## FORK INFO ##
+
+This fork adds `CLOUDFLARE_CONNECTION` env variable set to "true" if connection originated from one of module's trusted proxy IPs. It is very useful since you cannot add `DenyAllButCloudflare` directive everywhere, but instead you can now use `Require env CLOUDFLARE_CONNECTION` or `Require expr "-T env('CLOUDFLARE_CONNECTION')"` (the latter example provided if you want to mix it with other expressions, you could also consider the first one inside `RequireAll` block instead).
+
+To use it (replacing the original mode if you already use it), simply clone it and use instructions from below. On Ubuntu/Debian you can just execute:
+
+    git clone https://github.com/p0358/mod_cloudflare.git
+    cd mod_cloudflare
+    apt install apache2-dev
+    apxs2 -a -i -c mod_cloudflare.c
+    service apache2 restart
+
+
 ## mod_cloudflare.c ##
 
 Based on mod_remoteip.c, this Apache extension will replace the remote_ip variable in user's logs with the correct remote IP sent from CloudFlare. The module only performs the IP substitution for requests originating from CloudFlare IPs by default.
