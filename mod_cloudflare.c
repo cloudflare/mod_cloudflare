@@ -59,7 +59,6 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
   "198.41.128.0/17",
 /* IPv6 Address Ranges */
   "2400:cb00::/32",
-  "2405:8100::/32",
   "2405:b500::/32",
   "2606:4700::/32",
   "2803:f800::/32",
@@ -373,7 +372,7 @@ static int cloudflare_modify_connection(request_rec *r)
                     break;
                 }
             } else {
-                apr_table_addn(e, "CLOUDFLARE_CONNECTION", "true"); 
+                apr_table_addn(e, "CLOUDFLARE_CONNECTION", "true"); // TODO: Check if this is indeed appended to each request, as I had some issues with random 403s (my Apache config denying if this env variable was not set)
             }
         }
 
