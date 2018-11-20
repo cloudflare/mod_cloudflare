@@ -59,7 +59,6 @@ static const char* CF_DEFAULT_TRUSTED_PROXY[] = {
   "198.41.128.0/17",
 /* IPv6 Address Ranges */
   "2400:cb00::/32",
-  "2405:8100::/32",
   "2405:b500::/32",
   "2606:4700::/32",
   "2803:f800::/32",
@@ -282,11 +281,12 @@ static int cloudflare_modify_connection(request_rec *r)
     const char *cf_visitor_header = NULL;
 
     apr_pool_userdata_get((void*)&conn, "mod_cloudflare-conn", c->pool);
+  
+    apr_table_t *e = r->subprocess_env;
 
     cf_visitor_header = apr_table_get(r->headers_in, "CF-Visitor");
     if (cf_visitor_header != NULL) {
         if ((remote) && (strstr(cf_visitor_header, "https") != NULL)) {
-            apr_table_t *e = r->subprocess_env;
             apr_table_addn(e, "HTTPS", "on");
         }
     }
@@ -371,6 +371,8 @@ static int cloudflare_modify_connection(request_rec *r)
                 } else {
                     break;
                 }
+            } else {
+                apr_table_addn(e, "CLOUDFLARE_CONNECTION", "true"); // TODO: Check if this is indeed appended to each request, as I had some issues with random 403s (my Apache config denying if this env variable was not set)
             }
         }
 
