@@ -17,6 +17,11 @@ An alternative way to install is to use GNU autotools, which requires that autoc
     $ ./configure
     $ make
     $ make install
+    
+### OS Support ###
+
+- CentOS - Supported
+- CloudLinux - Not Supported
 
 No further configuration is needed. However, if you wish to override the default values, the following directives are exposed:
 
