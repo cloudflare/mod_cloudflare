@@ -38,13 +38,11 @@ function install_ea3 {
 function install_ea4 {
 
     #
-    # Reasonably reliable way to get OS distribution name and version
+    # Get OS version from redhat-release
     #
-    DISTRO_NAME=`cat /etc/os-release | grep "^NAME" | sed 's/NAME="//' | sed 's/"//'`
-    DISTRO_VERSION=`cat /etc/os-release | grep "^VERSION_ID" | sed 's/VERSION_ID="//' | sed 's/"//'`
+    DISTRO_NAME=`cat /etc/redhat-release | awk {'print$1'}`
+    DISTRO_VERSION=`cat /etc/redhat-release | sed -e 's/.*release \(.*\) (.*)/\1/' -e 's/\..*//'`
 
-    # Remove trailing minor version
-    DISTRO_VERSION=`sed "s/\..*//" <<<"$DISTRO_VERSION"`
 
     if [[ $DISTRO_VERSION == "6" || $DISTRO_VERSION == "7" ]]; then
     echo
@@ -97,13 +95,8 @@ function install_ea4 {
 # Main
 #
 
-#
-# Check which version of cPanel we have
-#
-CPANEL_VERSION=`/usr/local/cpanel/cpanel -V | sed "s/\..*$//"`
-
-# Version 58 and up have Easy Apache 4
-if [ "$CPANEL_VERSION" -gt "57" ]; then
+# Check if EasyApache 4 is enabled
+if [ -e "/etc/cpanel/ea4/is_ea4" ]; then
    install_ea4
 else
    install_ea3

@@ -1,4 +1,7 @@
-* Aut 05 2016 CloudFlare Inc <help@cloudflare.com> - 2016.8.0
+* Oct 24 2016 CloudFlare Inc <help@cloudflare.com> - 2016.10.0
+- Change OS detection for EasyApache 4 installer to work with CentOS < 7
+
+* Aug 05 2016 CloudFlare Inc <help@cloudflare.com> - 2016.8.0
 - Updated CloudFlare IPv6 ranges
 - Support for installing on EasyApache4
 
