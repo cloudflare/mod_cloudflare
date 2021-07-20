@@ -1,6 +1,10 @@
 # mod_cloudflare for Apache #
 Copyright CloudFlare Inc. 2016
 
+## Deprecation notice ##
+
+Cloudflare no longer updates and supports mod_cloudflare, starting with versions Debian 9 and Ubuntu 18.04 LTS of the Linux operating system. We now recommend [mod_remoteip](https://support.cloudflare.com/hc/articles/200170786#C5XWe97z77b3XZV) for customers using Apache web servers.
+
 ## mod_cloudflare.c ##
 
 Based on mod_remoteip.c, this Apache extension will replace the remote_ip variable in user's logs with the correct remote IP sent from CloudFlare. The module only performs the IP substitution for requests originating from CloudFlare IPs by default.
@@ -17,6 +21,11 @@ An alternative way to install is to use GNU autotools, which requires that autoc
     $ ./configure
     $ make
     $ make install
+    
+### OS Support ###
+
+- CentOS - Supported
+- CloudLinux - Not Supported
 
 No further configuration is needed. However, if you wish to override the default values, the following directives are exposed:
 
