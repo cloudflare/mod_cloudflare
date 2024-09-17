@@ -185,10 +185,9 @@ static apr_status_t set_cf_default_proxies(apr_pool_t *p, cloudflare_config_t *c
      apr_status_t rv;
      cloudflare_proxymatch_t *match;
      int i;
-     char **proxies = CF_DEFAULT_TRUSTED_PROXY;
 
      for (i=0; i<CF_DEFAULT_TRUSTED_PROXY_COUNT; i++) {
-         char *ip = apr_pstrdup(p, proxies[i]);
+         char *ip = apr_pstrdup(p, CF_DEFAULT_TRUSTED_PROXY[i]);
          char *s = ap_strchr(ip, '/');
 
          if (s) {
